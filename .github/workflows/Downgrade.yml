@@ -35,7 +35,7 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.9'
+          - '1.10'
           # - '~1.9.0-0' # including development versions
           # - 'nightly'
         os:
@@ -52,7 +52,9 @@ jobs:
       - uses: julia-actions/cache@v2
       - uses: julia-actions/julia-downgrade-compat@v2
         with:
+          skip: Test
           projects: ., test
+          mode: forcedeps
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON: ""
