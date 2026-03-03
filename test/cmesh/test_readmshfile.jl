@@ -70,7 +70,7 @@ end
 
 @testset "readmshfile" begin
     @testset "test_msh_file_vers4_ascii" begin
-        fileprefix = "cmesh/testfiles/test_msh_file_vers4_ascii"
+        fileprefix = joinpath(@__DIR__, "testfiles", "test_msh_file_vers4_ascii")
         filename = fileprefix * ".msh"
 
         @assert isfile(filename) "File not found: "*filename
@@ -83,7 +83,7 @@ end
     end
 
     @testset "test_msh_file_vers4_bin" begin
-        fileprefix = "cmesh/testfiles/test_msh_file_vers4_bin"
+        fileprefix = joinpath(@__DIR__, "testfiles", "test_msh_file_vers4_bin")
         filename = fileprefix * ".msh"
 
         @assert isfile(filename) "File not found: "*filename
