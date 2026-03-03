@@ -48,12 +48,15 @@ jobs:
         julia-arch: [x64, x86]
         os: [ubuntu-latest, windows-latest]
         include:
-        - os: macos-latest
-          julia-version: '1.9'
-        - os: macos-latest
-          julia-version: '1'
-        - os: macos-latest
-          julia-version: 'nightly'
+        - julia-version: '1.9'
+          julia-arch: 'default'
+          os: macos-latest
+        - julia-version: '1'
+          julia-arch: 'default'
+          os: macos-latest
+        - julia-version: 'nightly'
+          julia-arch: 'default'
+          os: macos-latest
     steps:
       - uses: actions/checkout@v6
       - uses: julia-actions/setup-julia@v2
