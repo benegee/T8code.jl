@@ -18,6 +18,18 @@ sed -i "s/mpifile::Cint/mpifile::MPI_File/g" "${LIB_JL}"
 
 sed -i "s/t8_forest_get_mpicomm(forest::t8_forest_t)::Cint/t8_forest_get_mpicomm(forest::t8_forest_t)::MPI_Comm/g" "${LIB_JL}"
 
+# Use libsc for `sc_*` functions
+sed -i "s/libt8\.sc_/libsc.sc_/g" "${LIB_JL}"
+
+# Use libp4est for `p4est_*` functions
+sed -i "s/libt8\.p4est_/libp4est.p4est_/g" "${LIB_JL}"
+
+# Use libp4est for `p6est_*` functions
+sed -i "s/libt8\.p6est_/libp4est.p6est_/g" "${LIB_JL}"
+
+# Use libp4est for `p8est_*` functions
+sed -i "s/libt8\.p8est_/libp4est.p8est_/g" "${LIB_JL}"
+
 # Remove struct t8_forest definition and replace by forward declaration
 sed -i -z 's/\nstruct t8_forest.*stats_computed::Cint\nend/\n# This struct is not supposed to be read and modified directly.\n# Besides, there is a circular dependency with `t8_forest_t`\n# leading to an error output by Julia.\nmutable struct t8_forest end/g' "${LIB_JL}"
 
