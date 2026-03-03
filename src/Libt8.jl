@@ -13787,6 +13787,155 @@ const t8_profile_struct_t = t8_profile
 """This struct stores various information about a forest's ghost elements and ghost trees."""
 const t8_forest_ghost_struct_t = t8_forest_ghost
 
+# typedef int ( * t8_fortran_adapt_coordinate_callback ) ( double x , double y , double z , int is_family )
+const t8_fortran_adapt_coordinate_callback = Ptr{Cvoid}
+
+const MPI_T8_Fint = Cint
+
+"""
+    t8_fortran_init_all(comm)
+
+### Prototype
+```c
+void t8_fortran_init_all (sc_MPI_Comm *comm);
+```
+"""
+function t8_fortran_init_all(comm)
+    @ccall libt8.t8_fortran_init_all(comm::Ptr{Cint})::Cvoid
+end
+
+# no prototype is found for this function at t8_fortran_interface.h:67:1, please use with caution
+"""
+    t8_fortran_finalize()
+
+Finalize sc. This wraps [`sc_finalize`](@ref) in order to have consistent naming with [`t8_fortran_init_all`](@ref).
+
+### Prototype
+```c
+void t8_fortran_finalize ();
+```
+"""
+function t8_fortran_finalize()
+    @ccall libt8.t8_fortran_finalize()::Cvoid
+end
+
+"""
+    t8_fortran_cmesh_commit(cmesh, comm)
+
+### Prototype
+```c
+void t8_fortran_cmesh_commit (t8_cmesh_t cmesh, sc_MPI_Comm *comm);
+```
+"""
+function t8_fortran_cmesh_commit(cmesh, comm)
+    @ccall libt8.t8_fortran_cmesh_commit(cmesh::t8_cmesh_t, comm::Ptr{Cint})::Cvoid
+end
+
+"""
+    t8_fortran_cmesh_set_join_by_stash_noConn(cmesh, do_both_directions)
+
+This function calls [`t8_cmesh_set_join_by_stash`](@ref) with connectivity = NULL.
+
+!!! warning
+
+    This routine might be too expensive for very large meshes. In this case,  consider to use a fully featured mesh generator.
+
+!!! note
+
+    This routine does not detect periodic boundaries.
+
+# Arguments
+* `cmesh`:\\[in,out\\] Pointer to a t8code cmesh object. If set to NULL this argument is ignored.
+* `do_both_directions`:\\[in\\] Compute the connectivity from both neighboring sides. Takes much longer to compute.
+### Prototype
+```c
+void t8_fortran_cmesh_set_join_by_stash_noConn (t8_cmesh_t cmesh, const int do_both_directions);
+```
+"""
+function t8_fortran_cmesh_set_join_by_stash_noConn(cmesh, do_both_directions)
+    @ccall libt8.t8_fortran_cmesh_set_join_by_stash_noConn(cmesh::t8_cmesh_t, do_both_directions::Cint)::Cvoid
+end
+
+"""
+    t8_fortran_MPI_Comm_new(Fcomm)
+
+### Prototype
+```c
+sc_MPI_Comm * t8_fortran_MPI_Comm_new (MPI_T8_Fint Fcomm);
+```
+"""
+function t8_fortran_MPI_Comm_new(Fcomm)
+    @ccall libt8.t8_fortran_MPI_Comm_new(Fcomm::MPI_T8_Fint)::Ptr{Cint}
+end
+
+"""
+    t8_fortran_MPI_Comm_delete(Ccomm)
+
+### Prototype
+```c
+void t8_fortran_MPI_Comm_delete (sc_MPI_Comm *Ccomm);
+```
+"""
+function t8_fortran_MPI_Comm_delete(Ccomm)
+    @ccall libt8.t8_fortran_MPI_Comm_delete(Ccomm::Ptr{Cint})::Cvoid
+end
+
+"""
+    t8_cmesh_new_periodic_tri_wrap(Ccomm)
+
+### Prototype
+```c
+t8_cmesh_t t8_cmesh_new_periodic_tri_wrap (sc_MPI_Comm *Ccomm);
+```
+"""
+function t8_cmesh_new_periodic_tri_wrap(Ccomm)
+    @ccall libt8.t8_cmesh_new_periodic_tri_wrap(Ccomm::Ptr{Cint})::t8_cmesh_t
+end
+
+"""
+    t8_forest_new_uniform_default(cmesh, level, do_face_ghost, comm)
+
+### Prototype
+```c
+t8_forest_t t8_forest_new_uniform_default (t8_cmesh_t cmesh, int level, int do_face_ghost, sc_MPI_Comm *comm);
+```
+"""
+function t8_forest_new_uniform_default(cmesh, level, do_face_ghost, comm)
+    @ccall libt8.t8_forest_new_uniform_default(cmesh::t8_cmesh_t, level::Cint, do_face_ghost::Cint, comm::Ptr{Cint})::t8_forest_t
+end
+
+"""
+    t8_forest_adapt_by_coordinates(forest, recursive, callback)
+
+# Arguments
+* `forest`:\\[in,out\\] The forest
+* `recursive`:\\[in\\] A flag specifying whether adaptation is to be done recursively or not. If the value is zero, adaptation is not recursive and it is recursive otherwise.
+* `callback`:\\[in\\] A pointer to a user defined function. t8code will never touch the function.
+### Prototype
+```c
+t8_forest_t t8_forest_adapt_by_coordinates (t8_forest_t forest, int recursive, t8_fortran_adapt_coordinate_callback callback);
+```
+"""
+function t8_forest_adapt_by_coordinates(forest, recursive, callback)
+    @ccall libt8.t8_forest_adapt_by_coordinates(forest::t8_forest_t, recursive::Cint, callback::t8_fortran_adapt_coordinate_callback)::t8_forest_t
+end
+
+"""
+    t8_global_productionf_noargs(string)
+
+Log a message on the root rank with priority [`SC_LP_PRODUCTION`](@ref).
+
+# Arguments
+* `string`:\\[in\\] String to log.
+### Prototype
+```c
+void t8_global_productionf_noargs (const char *string);
+```
+"""
+function t8_global_productionf_noargs(string)
+    @ccall libt8.t8_global_productionf_noargs(string::Cstring)::Cvoid
+end
+
 """
     t8_geometry_type
 
@@ -17102,17 +17251,19 @@ function t8_eclass_scheme_is_default(scheme, eclass)
     @ccall libt8.t8_eclass_scheme_is_default(scheme::Ptr{Cint}, eclass::t8_eclass_t)::Cint
 end
 
-const SC_CC = "/opt/bin/x86_64-linux-gnu-libgfortran5-cxx11-mpi+openmpi/x86_64-linux-gnu-gcc"
+const SC_CC = "/usr/bin/mpicc"
 
-const SC_CFLAGS = " -pthread"
+const SC_CFLAGS = " "
 
-const SC_CPP = "/opt/bin/x86_64-linux-gnu-libgfortran5-cxx11-mpi+openmpi/x86_64-linux-gnu-gcc -E"
+const SC_CPP = "/usr/bin/mpicc -E"
 
 const SC_CPPFLAGS = ""
 
 const SC_HAVE_ZLIB = 1
 
 const SC_ENABLE_PTHREAD = 1
+
+const SC_ENABLE_DEBUG = 1
 
 const SC_ENABLE_MEMALIGN = 1
 
@@ -17164,9 +17315,9 @@ const SC_SIZEOF_VOID_P = 8
 
 const SC_MEMALIGN_BYTES = SC_SIZEOF_VOID_P
 
-const SC_LDFLAGS = "-Wl,-rpath -Wl,/workspace/destdir/lib -Wl,--enable-new-dtags -L/workspace/x86_64-linux-gnu-libgfortran5-cxx11-mpi+openmpi/destdir/lib -pthread"
+const SC_LDFLAGS = ""
 
-const SC_LIBS = "/opt/x86_64-linux-gnu/x86_64-linux-gnu/sys-root/usr/local/lib/libz.so m"
+const SC_LIBS = "/usr/lib/libz.so m"
 
 const SC_PACKAGE = "libsc"
 
@@ -17278,21 +17429,15 @@ const SC_LP_ERROR = 8
 
 const SC_LP_SILENT = 9
 
-const SC_LP_THRESHOLD = SC_LP_INFO
-
-#const T8_LOCIDX_FORMAT = PRId32
+const SC_LP_THRESHOLD = SC_LP_TRACE
 
 const T8_MPI_LOCIDX = sc_MPI_INT
 
 const T8_LOCIDX_MAX = INT32_MAX
 
-#const T8_GLOIDX_FORMAT = PRId64
-
 const T8_MPI_GLOIDX = sc_MPI_LONG_LONG_INT
 
 const T8_GLOIDX_MAX = INT64_MAX
-
-#const T8_LINEARIDX_FORMAT = PRIu64
 
 const T8_MPI_LINEARIDX = sc_MPI_UNSIGNED_LONG_LONG
 
@@ -17366,39 +17511,15 @@ const T8_VTK_FORMAT_STRING = "ascii"
 
 # Skipping MacroDefinition: T8_THROW_ERROR_WITH @ "Invalid usage of T8_WITH_*. Use T8_ENABLE_* instead."
 
-#const T8_WITH_DEBUG = T8_THROW_ERROR_WITH
-
-#const T8_WITH_VTK = T8_THROW_ERROR_WITH
-
-#const T8_WITH_NETCDF = T8_THROW_ERROR_WITH
-
-#const T8_WITH_NETCDF_PAR = T8_THROW_ERROR_WITH
-
-#const T8_WITH_OCC = T8_THROW_ERROR_WITH
-
-#const T8_WITH_METIS = T8_THROW_ERROR_WITH
-
-#const T8_WITH_MPI = T8_THROW_ERROR_WITH
-
-#const T8_WITH_MPIIO = T8_THROW_ERROR_WITH
-
-#const T8_WITH_FORTRAN = T8_THROW_ERROR_WITH
-
-#const T8_WITH_CPPSTD = T8_THROW_ERROR_WITH
-
-#const T8_WITH_MODDIR = T8_THROW_ERROR_WITH
-
-#const T8_WITH_CUSTOM_TEST_COMMAND = T8_THROW_ERROR_WITH
-
 const sc_mpi_read = sc_io_read
 
 const sc_mpi_write = sc_io_write
 
-const P4EST_CC = "/opt/x86_64-linux-gnu/x86_64-linux-gnu/sys-root/usr/local/bin/mpicc"
+const P4EST_CC = "/usr/bin/mpicc"
 
-const P4EST_CFLAGS = " -pthread"
+const P4EST_CFLAGS = " "
 
-const P4EST_CPP = "/opt/x86_64-linux-gnu/x86_64-linux-gnu/sys-root/usr/local/bin/mpicc -E"
+const P4EST_CPP = "/usr/bin/mpicc -E"
 
 const P4EST_CPPFLAGS = ""
 
@@ -17407,6 +17528,8 @@ const P4EST_ENABLE_BUILD_2D = 1
 const P4EST_ENABLE_BUILD_3D = 1
 
 const P4EST_ENABLE_BUILD_P6EST = 1
+
+const P4EST_ENABLE_DEBUG = 1
 
 const P4EST_ENABLE_MEMALIGN = 1
 
@@ -17434,7 +17557,7 @@ const P4EST_HAVE_POSIX_MEMALIGN = 1
 
 const P4EST_HAVE_ZLIB = 1
 
-const P4EST_LDFLAGS = "-Wl,-rpath -Wl,/workspace/destdir/lib -Wl,--enable-new-dtags -L/workspace/x86_64-linux-gnu-libgfortran5-cxx11-mpi+openmpi/destdir/lib -pthread"
+const P4EST_LDFLAGS = ""
 
 const P4EST_LIBS = "   m"
 
