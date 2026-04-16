@@ -277,9 +277,11 @@ if t8_forest_get_num_ghosts(forest) > 0
 end
 
 # Output the volume data to vtu.
-t8_step5_output_data_to_vtu(forest, element_data, prefix_forest_with_data)
-t8_global_productionf(" [step5] Wrote forest and volume data to %s*.\n",
-                      prefix_forest_with_data)
+if !(CI_ON_WINDOWS || CI_ON_MACOS)
+    t8_step5_output_data_to_vtu(forest, element_data, prefix_forest_with_data)
+    t8_global_productionf(" [step5] Wrote forest and volume data to %s*.\n",
+                          prefix_forest_with_data)
+end
 
 #
 # Clean-up.
