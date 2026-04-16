@@ -404,8 +404,10 @@ t8_step6_exchange_ghost_data(forest, element_data)
 t8_step6_compute_stencil(forest, element_data)
 
 # Output the data to vtu files.
-t8_step6_output_data_to_vtu(forest, element_data, prefix_forest_with_data)
-t8_global_productionf(" Wrote forest and data to %s*.\n", prefix_forest_with_data)
+if !(CI_ON_WINDOWS || CI_ON_MACOS)
+    t8_step6_output_data_to_vtu(forest, element_data, prefix_forest_with_data)
+    t8_global_productionf(" Wrote forest and data to %s*.\n", prefix_forest_with_data)
+end
 
 #
 # Clean-up
