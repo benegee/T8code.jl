@@ -285,40 +285,28 @@ function sc_int64_compare(v1, v2)
 end
 
 """
-    t8_eclass
+    sc_shmem_malloc(package, elem_size, elem_count, comm)
 
-This enumeration contains all possible element classes.
-
-| Enumerator             | Note                                                                                                               |
-| :--------------------- | :----------------------------------------------------------------------------------------------------------------- |
-| T8\\_ECLASS\\_ZERO     | Zero-dimensional element class.                                                                                    |
-| T8\\_ECLASS\\_VERTEX   | The vertex is the only zero-dimensional element class.                                                             |
-| T8\\_ECLASS\\_LINE     | The line is the only one-dimensional element class.                                                                |
-| T8\\_ECLASS\\_QUAD     | The quadrilateral is one of two element classes in two dimensions.                                                 |
-| T8\\_ECLASS\\_TRIANGLE | The element class for a triangle.                                                                                  |
-| T8\\_ECLASS\\_HEX      | The hexahedron is one three-dimensional element class.                                                             |
-| T8\\_ECLASS\\_TET      | The tetrahedron is another three-dimensional element class.                                                        |
-| T8\\_ECLASS\\_PRISM    | The prism has five sides: two opposing triangles joined by three quadrilaterals.                                   |
-| T8\\_ECLASS\\_PYRAMID  | The pyramid has a quadrilateral as base and four triangles as sides.                                               |
-| T8\\_ECLASS\\_COUNT    | This is no element class but can be used as the number of element classes.                                         |
-| T8\\_ECLASS\\_INVALID  | This is no element class but can be used for the case a class of a third party library is not supported by t8code  |
+### Prototype
+```c
+void *sc_shmem_malloc (int package, size_t elem_size, size_t elem_count, sc_MPI_Comm comm);
+```
 """
-@cenum t8_eclass::UInt32 begin
-    T8_ECLASS_ZERO = 0
-    T8_ECLASS_VERTEX = 0
-    T8_ECLASS_LINE = 1
-    T8_ECLASS_QUAD = 2
-    T8_ECLASS_TRIANGLE = 3
-    T8_ECLASS_HEX = 4
-    T8_ECLASS_TET = 5
-    T8_ECLASS_PRISM = 6
-    T8_ECLASS_PYRAMID = 7
-    T8_ECLASS_COUNT = 8
-    T8_ECLASS_INVALID = 9
+function sc_shmem_malloc(package, elem_size, elem_count, comm)
+    @ccall libsc.sc_shmem_malloc(package::Cint, elem_size::Csize_t, elem_count::Csize_t, comm::MPI_Comm)::Ptr{Cvoid}
 end
 
-"""This enumeration contains all possible element classes."""
-const t8_eclass_t = t8_eclass
+"""
+    sc_shmem_free(package, array, comm)
+
+### Prototype
+```c
+void sc_shmem_free (int package, void *array, sc_MPI_Comm comm);
+```
+"""
+function sc_shmem_free(package, array, comm)
+    @ccall libsc.sc_shmem_free(package::Cint, array::Ptr{Cvoid}, comm::MPI_Comm)::Cvoid
+end
 
 """
     sc_tag_t
@@ -3071,995 +3059,6 @@ function t8_sc_array_index_locidx(array, index)
 end
 
 """
-    t8_eclass_count_boundary(theclass, min_dim, per_eclass)
-
-Query the element class and count of boundary points.
-
-# Arguments
-* `theclass`:\\[in\\] We query a point of this element class.
-* `min_dim`:\\[in\\] Ignore boundary points of lesser dimension. The ignored points get a count value of 0.
-* `per_eclass`:\\[out\\] Array of length T8\\_ECLASS\\_COUNT to be filled with the count of the boundary objects, counted per each of the element classes.
-# Returns
-The count over all boundary points.
-### Prototype
-```c
-int t8_eclass_count_boundary (t8_eclass_t theclass, int min_dim, int *per_eclass);
-```
-"""
-function t8_eclass_count_boundary(theclass, min_dim, per_eclass)
-    @ccall libt8.t8_eclass_count_boundary(theclass::t8_eclass_t, min_dim::Cint, per_eclass::Ptr{Cint})::Cint
-end
-
-"""
-    t8_eclass_compare(eclass1, eclass2)
-
-Compare two eclasses of the same dimension as necessary for face neighbor orientation. The implemented order is Triangle < Square in 2D and Tet < Hex < Prism < Pyramid in 3D.
-
-# Arguments
-* `eclass1`:\\[in\\] The first eclass to compare.
-* `eclass2`:\\[in\\] The second eclass to compare.
-# Returns
-0 if the eclasses are equal, 1 if eclass1 > eclass2 and -1 if eclass1 < eclass2
-### Prototype
-```c
-int t8_eclass_compare (t8_eclass_t eclass1, t8_eclass_t eclass2);
-```
-"""
-function t8_eclass_compare(eclass1, eclass2)
-    @ccall libt8.t8_eclass_compare(eclass1::t8_eclass_t, eclass2::t8_eclass_t)::Cint
-end
-
-"""
-    t8_eclass_is_valid(eclass)
-
-Check whether a class is a valid class. Returns non-zero if it is a valid class, returns zero, if the class is equal to T8\\_ECLASS\\_INVALID.
-
-# Arguments
-* `eclass`:\\[in\\] The eclass to check.
-# Returns
-Non-zero if *eclass* is valid, zero otherwise.
-### Prototype
-```c
-int t8_eclass_is_valid (t8_eclass_t eclass);
-```
-"""
-function t8_eclass_is_valid(eclass)
-    @ccall libt8.t8_eclass_is_valid(eclass::t8_eclass_t)::Cint
-end
-
-mutable struct t8_element end
-
-"""Opaque structure for a generic element, only used as pointer. Implementations are free to cast it to their internal data structure."""
-const t8_element_t = t8_element
-
-"""Type definition for the geometric shape of an element. Currently the possible shapes are the same as the possible element classes. I.e. T8\\_ECLASS\\_VERTEX, T8\\_ECLASS\\_TET, etc..."""
-const t8_element_shape_t = t8_eclass_t
-
-"""
-    t8_element_shape_num_faces(element_shape)
-
-The number of codimension-one boundaries of an element class.
-
-### Prototype
-```c
-int t8_element_shape_num_faces (int element_shape);
-```
-"""
-function t8_element_shape_num_faces(element_shape)
-    @ccall libt8.t8_element_shape_num_faces(element_shape::Cint)::Cint
-end
-
-"""
-    t8_element_shape_max_num_faces(element_shape)
-
-For each dimension the maximum possible number of faces of an element\\_shape of that dimension.
-
-### Prototype
-```c
-int t8_element_shape_max_num_faces (int element_shape);
-```
-"""
-function t8_element_shape_max_num_faces(element_shape)
-    @ccall libt8.t8_element_shape_max_num_faces(element_shape::Cint)::Cint
-end
-
-"""
-    t8_element_shape_num_vertices(element_shape)
-
-The number of vertices of an element class.
-
-### Prototype
-```c
-int t8_element_shape_num_vertices (int element_shape);
-```
-"""
-function t8_element_shape_num_vertices(element_shape)
-    @ccall libt8.t8_element_shape_num_vertices(element_shape::Cint)::Cint
-end
-
-"""
-    t8_element_shape_vtk_type(element_shape)
-
-The vtk cell type for the element\\_shape
-
-### Prototype
-```c
-int t8_element_shape_vtk_type (int element_shape);
-```
-"""
-function t8_element_shape_vtk_type(element_shape)
-    @ccall libt8.t8_element_shape_vtk_type(element_shape::Cint)::Cint
-end
-
-"""
-    t8_element_shape_t8_to_vtk_corner_number(element_shape, index)
-
-Maps the t8code corner number of the element to the vtk corner number
-
-# Arguments
-* `element_shape`:\\[in\\] The shape of the element.
-* `index`:\\[in\\] The index of the corner in z-order (t8code numeration).
-# Returns
-The corresponding vtk index.
-### Prototype
-```c
-int t8_element_shape_t8_to_vtk_corner_number (int element_shape, int index);
-```
-"""
-function t8_element_shape_t8_to_vtk_corner_number(element_shape, index)
-    @ccall libt8.t8_element_shape_t8_to_vtk_corner_number(element_shape::Cint, index::Cint)::Cint
-end
-
-"""
-    t8_element_shape_t8_corner_number(element_shape, index)
-
-Maps the vtk corner number of the element to the t8code corner number
-
-# Arguments
-* `element_shape`:\\[in\\] The shape of the element.
-* `index`:\\[in\\] The index of the corner in vtk ordering.
-# Returns
-The corresponding t8code index.
-### Prototype
-```c
-int t8_element_shape_t8_corner_number (int element_shape, int index);
-```
-"""
-function t8_element_shape_t8_corner_number(element_shape, index)
-    @ccall libt8.t8_element_shape_t8_corner_number(element_shape::Cint, index::Cint)::Cint
-end
-
-"""
-    t8_element_shape_to_string(element_shape)
-
-For each element\\_shape, the name of this class as a string
-
-### Prototype
-```c
-const char* t8_element_shape_to_string (int element_shape);
-```
-"""
-function t8_element_shape_to_string(element_shape)
-    @ccall libt8.t8_element_shape_to_string(element_shape::Cint)::Cstring
-end
-
-"""
-    t8_element_shape_compare(element_shape1, element_shape2)
-
-Compare two element\\_shapes of the same dimension as necessary for face neighbor orientation. The implemented order is Triangle < Square in 2D and Tet < Hex < Prism < Pyramid in 3D.
-
-# Arguments
-* `element_shape1`:\\[in\\] The first element\\_shape to compare.
-* `element_shape2`:\\[in\\] The second element\\_shape to compare.
-# Returns
-0 if the element\\_shapes are equal, 1 if element\\_shape1 > element\\_shape2 and -1 if element\\_shape1 < element\\_shape2
-### Prototype
-```c
-int t8_element_shape_compare (t8_element_shape_t element_shape1, t8_element_shape_t element_shape2);
-```
-"""
-function t8_element_shape_compare(element_shape1, element_shape2)
-    @ccall libt8.t8_element_shape_compare(element_shape1::t8_element_shape_t, element_shape2::t8_element_shape_t)::Cint
-end
-
-"""
-    t8_mat_init_xrot(mat, angle)
-
-Initialize given 3x3 matrix as rotation matrix around the x-axis with given angle.
-
-# Arguments
-* `mat`:\\[in,out\\] 3x3-matrix.
-* `angle`:\\[in\\] Rotation angle in radians.
-### Prototype
-```c
-static inline void t8_mat_init_xrot (double mat[3][3], const double angle);
-```
-"""
-function t8_mat_init_xrot(mat, angle)
-    @ccall libt8.t8_mat_init_xrot(mat::Ptr{NTuple{3, Cdouble}}, angle::Cdouble)::Cvoid
-end
-
-"""
-    t8_mat_init_yrot(mat, angle)
-
-Initialize given 3x3 matrix as rotation matrix around the y-axis with given angle.
-
-# Arguments
-* `mat`:\\[in,out\\] 3x3-matrix.
-* `angle`:\\[in\\] Rotation angle in radians.
-### Prototype
-```c
-static inline void t8_mat_init_yrot (double mat[3][3], const double angle);
-```
-"""
-function t8_mat_init_yrot(mat, angle)
-    @ccall libt8.t8_mat_init_yrot(mat::Ptr{NTuple{3, Cdouble}}, angle::Cdouble)::Cvoid
-end
-
-"""
-    t8_mat_init_zrot(mat, angle)
-
-Initialize given 3x3 matrix as rotation matrix around the z-axis with given angle.
-
-# Arguments
-* `mat`:\\[in,out\\] 3x3-matrix.
-* `angle`:\\[in\\] Rotation angle in radians.
-### Prototype
-```c
-static inline void t8_mat_init_zrot (double mat[3][3], const double angle);
-```
-"""
-function t8_mat_init_zrot(mat, angle)
-    @ccall libt8.t8_mat_init_zrot(mat::Ptr{NTuple{3, Cdouble}}, angle::Cdouble)::Cvoid
-end
-
-"""
-    t8_mat_mult_vec(mat, a, b)
-
-Apply matrix-matrix multiplication: b = M*a.
-
-# Arguments
-* `mat`:\\[in\\] 3x3-matrix.
-* `a`:\\[in\\] 3-vector.
-* `b`:\\[in,out\\] 3-vector.
-### Prototype
-```c
-static inline void t8_mat_mult_vec (const double mat[3][3], const double a[3], double b[3]);
-```
-"""
-function t8_mat_mult_vec(mat, a, b)
-    @ccall libt8.t8_mat_mult_vec(mat::Ptr{NTuple{3, Cdouble}}, a::Ptr{Cdouble}, b::Ptr{Cdouble})::Cvoid
-end
-
-"""
-    t8_mat_mult_mat(A, B, C)
-
-Apply matrix-matrix multiplication: C = A*B.
-
-# Arguments
-* `A`:\\[in\\] 3x3-matrix.
-* `B`:\\[in\\] 3x3-matrix.
-* `C`:\\[in,out\\] 3x3-matrix.
-### Prototype
-```c
-static inline void t8_mat_mult_mat (const double A[3][3], const double B[3][3], double C[3][3]);
-```
-"""
-function t8_mat_mult_mat(A, B, C)
-    @ccall libt8.t8_mat_mult_mat(A::Ptr{NTuple{3, Cdouble}}, B::Ptr{NTuple{3, Cdouble}}, C::Ptr{NTuple{3, Cdouble}})::Cvoid
-end
-
-"""
-    sc_refcount
-
-The refcount structure is declared in public so its size is known. Its members should really never be accessed directly.
-
-| Field        | Note                                                         |
-| :----------- | :----------------------------------------------------------- |
-| package\\_id | The sc package that uses this reference counter.             |
-| refcount     | The reference count is always positive for a valid counter.  |
-"""
-struct sc_refcount
-    package_id::Cint
-    refcount::Cint
-end
-
-"""The refcount structure is declared in public so its size is known. Its members should really never be accessed directly."""
-const sc_refcount_t = sc_refcount
-
-"""
-    sc_refcount_ref(rc)
-
-Increase a reference counter. The counter must be active, that is, have a value greater than zero.
-
-# Arguments
-* `rc`:\\[in,out\\] This reference counter must be valid (greater zero). Its count is increased by one.
-### Prototype
-```c
-void sc_refcount_ref (sc_refcount_t * rc);
-```
-"""
-function sc_refcount_ref(rc)
-    @ccall libsc.sc_refcount_ref(rc::Ptr{sc_refcount_t})::Cvoid
-end
-
-"""
-    sc_refcount_unref(rc)
-
-Decrease the reference counter and notify when it reaches zero. The count must be greater zero on input. If the reference count reaches zero, which is indicated by the return value, the counter may not be used further with sc_refcount_ref or
-
-# Arguments
-* `rc`:\\[in,out\\] This reference counter must be valid (greater zero). Its count is decreased by one.
-# Returns
-True if the count has reached zero, false otherwise.
-# See also
-[`sc_refcount_unref`](@ref). It is legal, however, to reactivate it later by calling, [`sc_refcount_init`](@ref).
-
-### Prototype
-```c
-int sc_refcount_unref (sc_refcount_t * rc);
-```
-"""
-function sc_refcount_unref(rc)
-    @ccall libsc.sc_refcount_unref(rc::Ptr{sc_refcount_t})::Cint
-end
-
-"""
-    sc_refcount_is_active(rc)
-
-Check whether a reference counter has a positive value. This means that the reference counter is in use and corresponds to a live object.
-
-# Arguments
-* `rc`:\\[in\\] A reference counter.
-# Returns
-True if the count is greater zero, false otherwise.
-### Prototype
-```c
-int sc_refcount_is_active (const sc_refcount_t * rc);
-```
-"""
-function sc_refcount_is_active(rc)
-    @ccall libsc.sc_refcount_is_active(rc::Ptr{sc_refcount_t})::Cint
-end
-
-"""
-    sc_refcount_is_last(rc)
-
-Check whether a reference counter has value one. This means that this counter is the last of its kind, which we may optimize for.
-
-# Arguments
-* `rc`:\\[in\\] A reference counter.
-# Returns
-True if the count is exactly one.
-### Prototype
-```c
-int sc_refcount_is_last (const sc_refcount_t * rc);
-```
-"""
-function sc_refcount_is_last(rc)
-    @ccall libsc.sc_refcount_is_last(rc::Ptr{sc_refcount_t})::Cint
-end
-
-"""
-    sc_refcount_init_invalid(rc)
-
-Initialize a well-defined but unusable reference counter. Specifically, we set its package identifier and reference count to -1. To make this reference counter usable, call sc_refcount_init.
-
-# Arguments
-* `rc`:\\[out\\] This reference counter is defined as invalid. It will return false on both sc_refcount_is_active and sc_refcount_is_last. It can be made valid by calling sc_refcount_init. No other functions must be called on it.
-### Prototype
-```c
-void sc_refcount_init_invalid (sc_refcount_t * rc);
-```
-"""
-function sc_refcount_init_invalid(rc)
-    @ccall libsc.sc_refcount_init_invalid(rc::Ptr{sc_refcount_t})::Cvoid
-end
-
-"""
-    sc_refcount_init(rc, package_id)
-
-Initialize a reference counter to 1. It is legal if its status prior to this call is undefined.
-
-# Arguments
-* `rc`:\\[out\\] This reference counter is initialized to one. The object's contents may be undefined on input.
-* `package_id`:\\[in\\] Either -1 or a package registered to libsc.
-### Prototype
-```c
-void sc_refcount_init (sc_refcount_t * rc, int package_id);
-```
-"""
-function sc_refcount_init(rc, package_id)
-    @ccall libsc.sc_refcount_init(rc::Ptr{sc_refcount_t}, package_id::Cint)::Cvoid
-end
-
-"""
-    sc_refcount_new(package_id)
-
-Create a new reference counter with count initialized to 1. Equivalent to calling sc_refcount_init on a newly allocated rc object.
-
-# Arguments
-* `package_id`:\\[in\\] Either -1 or a package registered to libsc.
-# Returns
-A reference counter with count one.
-### Prototype
-```c
-sc_refcount_t *sc_refcount_new (int package_id);
-```
-"""
-function sc_refcount_new(package_id)
-    @ccall libsc.sc_refcount_new(package_id::Cint)::Ptr{sc_refcount_t}
-end
-
-"""
-    sc_refcount_destroy(rc)
-
-Destroy a reference counter. It must have been counted down to zero before, thus reached an inactive state.
-
-# Arguments
-* `rc`:\\[in,out\\] This reference counter must have reached count zero.
-### Prototype
-```c
-void sc_refcount_destroy (sc_refcount_t * rc);
-```
-"""
-function sc_refcount_destroy(rc)
-    @ccall libsc.sc_refcount_destroy(rc::Ptr{sc_refcount_t})::Cvoid
-end
-
-"""We can reuse the reference counter type from libsc."""
-const t8_refcount_t = sc_refcount_t
-
-"""
-    t8_refcount_init(rc)
-
-Initialize a reference counter to 1. It is legal if its status prior to this call is undefined.
-
-# Arguments
-* `rc`:\\[out\\] The reference counter is set to one by this call.
-### Prototype
-```c
-void t8_refcount_init (t8_refcount_t *rc);
-```
-"""
-function t8_refcount_init(rc)
-    @ccall libt8.t8_refcount_init(rc::Ptr{t8_refcount_t})::Cvoid
-end
-
-"""
-    t8_refcount_new()
-
-Create a new reference counter with count initialized to 1. Equivalent to calling [`t8_refcount_init`](@ref) on a newly allocated refcount\\_t. It is mandatory to free this with t8_refcount_destroy.
-
-# Returns
-An allocated reference counter whose count has been set to one.
-### Prototype
-```c
-t8_refcount_t * t8_refcount_new (void);
-```
-"""
-function t8_refcount_new()
-    @ccall libt8.t8_refcount_new()::Ptr{t8_refcount_t}
-end
-
-"""
-    t8_refcount_destroy(rc)
-
-Destroy a reference counter that we allocated with t8_refcount_new. Its reference count must have decreased to zero.
-
-# Arguments
-* `rc`:\\[in,out\\] Allocated, formerly valid reference counter.
-### Prototype
-```c
-void t8_refcount_destroy (t8_refcount_t *rc);
-```
-"""
-function t8_refcount_destroy(rc)
-    @ccall libt8.t8_refcount_destroy(rc::Ptr{t8_refcount_t})::Cvoid
-end
-
-"""
-    t8_norm(vec)
-
-Vector norm.
-
-# Arguments
-* `vec`:\\[in\\] A 3D vector.
-# Returns
-The norm of *vec*.
-### Prototype
-```c
-double t8_norm (const double vec[3]);
-```
-"""
-function t8_norm(vec)
-    @ccall libt8.t8_norm(vec::Ptr{Cdouble})::Cdouble
-end
-
-"""
-    t8_normalize(vec)
-
-Normalize a vector.
-
-# Arguments
-* `vec`:\\[in,out\\] A 3D vector.
-### Prototype
-```c
-void t8_normalize (double vec[3]);
-```
-"""
-function t8_normalize(vec)
-    @ccall libt8.t8_normalize(vec::Ptr{Cdouble})::Cvoid
-end
-
-"""
-    t8_copy(dimensional_in, dimensional_out)
-
-Make a copy of a dimensional object.
-
-# Arguments
-* `dimensional_in`:\\[in\\]
-* `dimensional_out`:\\[out\\]
-### Prototype
-```c
-void t8_copy (const double dimensional_in[3], double dimensional_out[3]);
-```
-"""
-function t8_copy(dimensional_in, dimensional_out)
-    @ccall libt8.t8_copy(dimensional_in::Ptr{Cdouble}, dimensional_out::Ptr{Cdouble})::Cvoid
-end
-
-"""
-    t8_dist(vec_x, vec_y)
-
-Euclidean distance of X and Y.
-
-# Arguments
-* `vec_x`:\\[in\\] A 3D vector.
-* `vec_y`:\\[in\\] A 3D vector.
-# Returns
-The euclidean distance. Equivalent to norm (X-Y).
-### Prototype
-```c
-double t8_dist (const double vec_x[3], const double vec_y[3]);
-```
-"""
-function t8_dist(vec_x, vec_y)
-    @ccall libt8.t8_dist(vec_x::Ptr{Cdouble}, vec_y::Ptr{Cdouble})::Cdouble
-end
-
-"""
-    t8_ax(vec_x, alpha)
-
-Compute X = alpha * X
-
-# Arguments
-* `vec_x`:\\[in,out\\] A 3D vector. On output set to *alpha* * *vec_x*.
-* `alpha`:\\[in\\] A factor.
-### Prototype
-```c
-void t8_ax (double vec_x[3], const double alpha);
-```
-"""
-function t8_ax(vec_x, alpha)
-    @ccall libt8.t8_ax(vec_x::Ptr{Cdouble}, alpha::Cdouble)::Cvoid
-end
-
-"""
-    t8_axy(vec_x, vec_y, alpha)
-
-Compute Y = alpha * X
-
-# Arguments
-* `vec_x`:\\[in\\] A 3D vector.
-* `vec_y`:\\[out\\] On output set to *alpha* * *vec_x*.
-* `alpha`:\\[in\\] A factor.
-### Prototype
-```c
-void t8_axy (const double vec_x[3], double vec_y[3], const double alpha);
-```
-"""
-function t8_axy(vec_x, vec_y, alpha)
-    @ccall libt8.t8_axy(vec_x::Ptr{Cdouble}, vec_y::Ptr{Cdouble}, alpha::Cdouble)::Cvoid
-end
-
-"""
-    t8_axb(vec_x, vec_y, alpha, b)
-
-Y = alpha * X + b
-
-!!! note
-
-    It is possible that vec\\_x = vec\\_y on input to overwrite x
-
-# Arguments
-* `vec_x`:\\[in\\] A 3D vector.
-* `vec_y`:\\[out\\] On input, a 3D vector. On output set to *alpha* * *vec_x* + *b*.
-* `alpha`:\\[in\\] A factor.
-* `b`:\\[in\\] An offset.
-### Prototype
-```c
-void t8_axb (const double vec_x[3], double vec_y[3], const double alpha, const double b);
-```
-"""
-function t8_axb(vec_x, vec_y, alpha, b)
-    @ccall libt8.t8_axb(vec_x::Ptr{Cdouble}, vec_y::Ptr{Cdouble}, alpha::Cdouble, b::Cdouble)::Cvoid
-end
-
-"""
-    t8_axpy(vec_x, vec_y, alpha)
-
-Y = Y + alpha * X
-
-# Arguments
-* `vec_x`:\\[in\\] A 3D vector.
-* `vec_y`:\\[in,out\\] On input, a 3D vector. On output set *to* vec\\_y + *alpha* * *vec_x*
-* `alpha`:\\[in\\] A factor.
-### Prototype
-```c
-void t8_axpy (const double vec_x[3], double vec_y[3], const double alpha);
-```
-"""
-function t8_axpy(vec_x, vec_y, alpha)
-    @ccall libt8.t8_axpy(vec_x::Ptr{Cdouble}, vec_y::Ptr{Cdouble}, alpha::Cdouble)::Cvoid
-end
-
-"""
-    t8_axpyz(vec_x, vec_y, vec_z, alpha)
-
-Z = Y + alpha * X
-
-# Arguments
-* `vec_x`:\\[in\\] A 3D vector.
-* `vec_y`:\\[in\\] A 3D vector.
-* `vec_z`:\\[out\\] On output set *to* vec\\_y + *alpha* * *vec_x*
-* `alpha`:\\[in\\] A factor for the multiplication of *vec_x*.
-### Prototype
-```c
-void t8_axpyz (const double vec_x[3], const double vec_y[3], double vec_z[3], const double alpha);
-```
-"""
-function t8_axpyz(vec_x, vec_y, vec_z, alpha)
-    @ccall libt8.t8_axpyz(vec_x::Ptr{Cdouble}, vec_y::Ptr{Cdouble}, vec_z::Ptr{Cdouble}, alpha::Cdouble)::Cvoid
-end
-
-"""
-    t8_dot(vec_x, vec_y)
-
-Dot product of X and Y.
-
-# Arguments
-* `vec_x`:\\[in\\] A 3D vector.
-* `vec_y`:\\[in\\] A 3D vector.
-# Returns
-The dot product *vec_x* * *vec_y*
-### Prototype
-```c
-double t8_dot (const double vec_x[3], const double vec_y[3]);
-```
-"""
-function t8_dot(vec_x, vec_y)
-    @ccall libt8.t8_dot(vec_x::Ptr{Cdouble}, vec_y::Ptr{Cdouble})::Cdouble
-end
-
-"""
-    t8_cross_3D(vec_x, vec_y, cross)
-
-Cross product of X and Y
-
-# Arguments
-* `vec_x`:\\[in\\] A 3D vector.
-* `vec_y`:\\[in\\] A 3D vector.
-* `cross`:\\[out\\] On output, the cross product of *vec_x* and *vec_y*.
-### Prototype
-```c
-void t8_cross_3D (const double vec_x[3], const double vec_y[3], double cross[3]);
-```
-"""
-function t8_cross_3D(vec_x, vec_y, cross)
-    @ccall libt8.t8_cross_3D(vec_x::Ptr{Cdouble}, vec_y::Ptr{Cdouble}, cross::Ptr{Cdouble})::Cvoid
-end
-
-"""
-    t8_cross_2D(vec_x, vec_y)
-
-Cross product of X and Y
-
-# Arguments
-* `vec_x`:\\[in\\] A 2D vector.
-* `vec_y`:\\[in\\] A 2D vector.
-# Returns
-The cross product of *vec_x* and *vec_y*.
-### Prototype
-```c
-double t8_cross_2D (const double vec_x[2], const double vec_y[2]);
-```
-"""
-function t8_cross_2D(vec_x, vec_y)
-    @ccall libt8.t8_cross_2D(vec_x::Ptr{Cdouble}, vec_y::Ptr{Cdouble})::Cdouble
-end
-
-"""
-    t8_diff(vec_x, vec_y, diff)
-
-Compute the difference of two vectors.
-
-# Arguments
-* `vec_x`:\\[in\\] A 3D vector.
-* `vec_y`:\\[in\\] A 3D vector.
-* `diff`:\\[out\\] On output, the difference of *vec_x* and *vec_y*.
-### Prototype
-```c
-void t8_diff (const double vec_x[3], const double vec_y[3], double diff[3]);
-```
-"""
-function t8_diff(vec_x, vec_y, diff)
-    @ccall libt8.t8_diff(vec_x::Ptr{Cdouble}, vec_y::Ptr{Cdouble}, diff::Ptr{Cdouble})::Cvoid
-end
-
-"""
-    t8_eq(vec_x, vec_y, tol)
-
-Check the equality of two vectors elementwise
-
-# Arguments
-* `vec_x`:\\[in\\]
-* `vec_y`:\\[in\\]
-* `tol`:\\[in\\]
-# Returns
-true, if the vectors are equal up to *tol*
-### Prototype
-```c
-int t8_eq (const double vec_x[3], const double vec_y[3], const double tol);
-```
-"""
-function t8_eq(vec_x, vec_y, tol)
-    @ccall libt8.t8_eq(vec_x::Ptr{Cdouble}, vec_y::Ptr{Cdouble}, tol::Cdouble)::Cint
-end
-
-"""
-    t8_rescale(vec, new_length)
-
-Rescale a vector to a new length.
-
-# Arguments
-* `vec`:\\[in,out\\] A 3D vector.
-* `new_length`:\\[in\\] New length of the vector.
-### Prototype
-```c
-void t8_rescale (double vec[3], const double new_length);
-```
-"""
-function t8_rescale(vec, new_length)
-    @ccall libt8.t8_rescale(vec::Ptr{Cdouble}, new_length::Cdouble)::Cvoid
-end
-
-"""
-    t8_normal_of_tri(p1, p2, p3, normal)
-
-Compute the normal of a triangle given by its three vertices.
-
-# Arguments
-* `p1`:\\[in\\] A 3D vector.
-* `p2`:\\[in\\] A 3D vector.
-* `p3`:\\[in\\] A 3D vector.
-* `normal`:\\[out\\] vector of the triangle. (Not necessarily of length 1!)
-### Prototype
-```c
-void t8_normal_of_tri (const double p1[3], const double p2[3], const double p3[3], double normal[3]);
-```
-"""
-function t8_normal_of_tri(p1, p2, p3, normal)
-    @ccall libt8.t8_normal_of_tri(p1::Ptr{Cdouble}, p2::Ptr{Cdouble}, p3::Ptr{Cdouble}, normal::Ptr{Cdouble})::Cvoid
-end
-
-"""
-    t8_orthogonal_tripod(v1, v2, v3)
-
-Compute an orthogonal coordinate system from a given vector.
-
-# Arguments
-* `v1`:\\[in\\] 3D vector.
-* `v2`:\\[out\\] 3D vector.
-* `v3`:\\[out\\] 3D vector.
-### Prototype
-```c
-void t8_orthogonal_tripod (const double v1[3], double v2[3], double v3[3]);
-```
-"""
-function t8_orthogonal_tripod(v1, v2, v3)
-    @ccall libt8.t8_orthogonal_tripod(v1::Ptr{Cdouble}, v2::Ptr{Cdouble}, v3::Ptr{Cdouble})::Cvoid
-end
-
-"""
-    t8_swap(p1, p2)
-
-Swap the components of two vectors.
-
-# Arguments
-* `p1`:\\[in,out\\] A 3D vector.
-* `p2`:\\[in,out\\] A 3D vector.
-### Prototype
-```c
-void t8_swap (double p1[3], double p2[3]);
-```
-"""
-function t8_swap(p1, p2)
-    @ccall libt8.t8_swap(p1::Ptr{Cdouble}, p2::Ptr{Cdouble})::Cvoid
-end
-
-# no prototype is found for this function at t8_version.h:67:1, please use with caution
-"""
-    t8_get_package_string()
-
-Return the package string of t8code. This string has the format "t8 version\\_number".
-
-# Returns
-The version string of t8code.
-### Prototype
-```c
-const char* t8_get_package_string ();
-```
-"""
-function t8_get_package_string()
-    @ccall libt8.t8_get_package_string()::Cstring
-end
-
-# no prototype is found for this function at t8_version.h:73:1, please use with caution
-"""
-    t8_get_version_number()
-
-Return the version number of t8code as a string.
-
-# Returns
-The version number of t8code as a string.
-### Prototype
-```c
-const char* t8_get_version_number ();
-```
-"""
-function t8_get_version_number()
-    @ccall libt8.t8_get_version_number()::Cstring
-end
-
-# no prototype is found for this function at t8_version.h:79:1, please use with caution
-"""
-    t8_get_version_point_string()
-
-Return the version point string.
-
-# Returns
-The version point point string.
-### Prototype
-```c
-const char* t8_get_version_point_string ();
-```
-"""
-function t8_get_version_point_string()
-    @ccall libt8.t8_get_version_point_string()::Cstring
-end
-
-# no prototype is found for this function at t8_version.h:85:1, please use with caution
-"""
-    t8_get_version_major()
-
-Return the major version number of t8code.
-
-# Returns
-The major version number of t8code.
-### Prototype
-```c
-int t8_get_version_major ();
-```
-"""
-function t8_get_version_major()
-    @ccall libt8.t8_get_version_major()::Cint
-end
-
-# no prototype is found for this function at t8_version.h:91:1, please use with caution
-"""
-    t8_get_version_minor()
-
-Return the minor version number of t8code.
-
-# Returns
-The minor version number of t8code.
-### Prototype
-```c
-int t8_get_version_minor ();
-```
-"""
-function t8_get_version_minor()
-    @ccall libt8.t8_get_version_minor()::Cint
-end
-
-# no prototype is found for this function at t8_version.h:97:1, please use with caution
-"""
-    t8_get_version_patch()
-
-Return the patch version number of t8code.
-
-# Returns
-The patch version number of t8code.
-### Prototype
-```c
-int t8_get_version_patch ();
-```
-"""
-function t8_get_version_patch()
-    @ccall libt8.t8_get_version_patch()::Cint
-end
-
-"""
-    t8_vtk_data_type_t
-
-TODO: Add support for integer data type.
-
-| Enumerator        | Note                          |
-| :---------------- | :---------------------------- |
-| T8\\_VTK\\_SCALAR | One double value per element  |
-| T8\\_VTK\\_VECTOR | 3 double values per element   |
-"""
-@cenum t8_vtk_data_type_t::UInt32 begin
-    T8_VTK_SCALAR = 0
-    T8_VTK_VECTOR = 1
-end
-
-"""
-    t8_vtk_data_field_t
-
-A data field for VTK output. This struct is used to store data that is written to the VTK files. It contains the type of the data, a description, and the actual data array.
-
-| Field       | Note                                       |
-| :---------- | :----------------------------------------- |
-| type        | Describes of which type the data array is  |
-| description | String that describes the data.            |
-"""
-struct t8_vtk_data_field_t
-    type::t8_vtk_data_type_t
-    description::NTuple{8192, Cchar}
-    data::Ptr{Cdouble}
-end
-
-"""
-    t8_write_pvtu(filename, num_procs, write_tree, write_rank, write_level, write_id, num_data, data)
-
-Writes the pvtu header file that links to the processor local files. It is used by the cmesh and forest vtk routines. This function should only be called by one process. Return 0 on success.
-
-### Prototype
-```c
-int t8_write_pvtu (const char *filename, int num_procs, int write_tree, int write_rank, int write_level, int write_id, int num_data, t8_vtk_data_field_t *data);
-```
-"""
-function t8_write_pvtu(filename, num_procs, write_tree, write_rank, write_level, write_id, num_data, data)
-    @ccall libt8.t8_write_pvtu(filename::Cstring, num_procs::Cint, write_tree::Cint, write_rank::Cint, write_level::Cint, write_id::Cint, num_data::Cint, data::Ptr{t8_vtk_data_field_t})::Cint
-end
-
-"""
-    sc_shmem_malloc(package, elem_size, elem_count, comm)
-
-### Prototype
-```c
-void *sc_shmem_malloc (int package, size_t elem_size, size_t elem_count, sc_MPI_Comm comm);
-```
-"""
-function sc_shmem_malloc(package, elem_size, elem_count, comm)
-    @ccall libsc.sc_shmem_malloc(package::Cint, elem_size::Csize_t, elem_count::Csize_t, comm::MPI_Comm)::Ptr{Cvoid}
-end
-
-"""
-    sc_shmem_free(package, array, comm)
-
-### Prototype
-```c
-void sc_shmem_free (int package, void *array, sc_MPI_Comm comm);
-```
-"""
-function sc_shmem_free(package, array, comm)
-    @ccall libsc.sc_shmem_free(package::Cint, array::Ptr{Cvoid}, comm::MPI_Comm)::Cvoid
-end
-
-"""
     sc_shmem_type_t
 
 ` sc_shmem.h `
@@ -4168,6 +3167,164 @@ mutable struct t8_cmesh end
 
 """Forward pointer reference to hidden cmesh implementation. This reference needs to be known by [`t8_geometry`](@ref), hence we  put it before the include."""
 const t8_cmesh_t = Ptr{t8_cmesh}
+
+"""
+    sc_refcount
+
+The refcount structure is declared in public so its size is known. Its members should really never be accessed directly.
+
+| Field        | Note                                                         |
+| :----------- | :----------------------------------------------------------- |
+| package\\_id | The sc package that uses this reference counter.             |
+| refcount     | The reference count is always positive for a valid counter.  |
+"""
+struct sc_refcount
+    package_id::Cint
+    refcount::Cint
+end
+
+"""The refcount structure is declared in public so its size is known. Its members should really never be accessed directly."""
+const sc_refcount_t = sc_refcount
+
+"""
+    sc_refcount_init_invalid(rc)
+
+Initialize a well-defined but unusable reference counter. Specifically, we set its package identifier and reference count to -1. To make this reference counter usable, call sc_refcount_init.
+
+# Arguments
+* `rc`:\\[out\\] This reference counter is defined as invalid. It will return false on both sc_refcount_is_active and sc_refcount_is_last. It can be made valid by calling sc_refcount_init. No other functions must be called on it.
+### Prototype
+```c
+void sc_refcount_init_invalid (sc_refcount_t * rc);
+```
+"""
+function sc_refcount_init_invalid(rc)
+    @ccall libsc.sc_refcount_init_invalid(rc::Ptr{sc_refcount_t})::Cvoid
+end
+
+"""
+    sc_refcount_init(rc, package_id)
+
+Initialize a reference counter to 1. It is legal if its status prior to this call is undefined.
+
+# Arguments
+* `rc`:\\[out\\] This reference counter is initialized to one. The object's contents may be undefined on input.
+* `package_id`:\\[in\\] Either -1 or a package registered to libsc.
+### Prototype
+```c
+void sc_refcount_init (sc_refcount_t * rc, int package_id);
+```
+"""
+function sc_refcount_init(rc, package_id)
+    @ccall libsc.sc_refcount_init(rc::Ptr{sc_refcount_t}, package_id::Cint)::Cvoid
+end
+
+"""
+    sc_refcount_new(package_id)
+
+Create a new reference counter with count initialized to 1. Equivalent to calling sc_refcount_init on a newly allocated rc object.
+
+# Arguments
+* `package_id`:\\[in\\] Either -1 or a package registered to libsc.
+# Returns
+A reference counter with count one.
+### Prototype
+```c
+sc_refcount_t *sc_refcount_new (int package_id);
+```
+"""
+function sc_refcount_new(package_id)
+    @ccall libsc.sc_refcount_new(package_id::Cint)::Ptr{sc_refcount_t}
+end
+
+"""
+    sc_refcount_destroy(rc)
+
+Destroy a reference counter. It must have been counted down to zero before, thus reached an inactive state.
+
+# Arguments
+* `rc`:\\[in,out\\] This reference counter must have reached count zero.
+### Prototype
+```c
+void sc_refcount_destroy (sc_refcount_t * rc);
+```
+"""
+function sc_refcount_destroy(rc)
+    @ccall libsc.sc_refcount_destroy(rc::Ptr{sc_refcount_t})::Cvoid
+end
+
+"""
+    sc_refcount_ref(rc)
+
+Increase a reference counter. The counter must be active, that is, have a value greater than zero.
+
+# Arguments
+* `rc`:\\[in,out\\] This reference counter must be valid (greater zero). Its count is increased by one.
+### Prototype
+```c
+void sc_refcount_ref (sc_refcount_t * rc);
+```
+"""
+function sc_refcount_ref(rc)
+    @ccall libsc.sc_refcount_ref(rc::Ptr{sc_refcount_t})::Cvoid
+end
+
+"""
+    sc_refcount_unref(rc)
+
+Decrease the reference counter and notify when it reaches zero. The count must be greater zero on input. If the reference count reaches zero, which is indicated by the return value, the counter may not be used further with sc_refcount_ref or
+
+# Arguments
+* `rc`:\\[in,out\\] This reference counter must be valid (greater zero). Its count is decreased by one.
+# Returns
+True if the count has reached zero, false otherwise.
+# See also
+[`sc_refcount_unref`](@ref). It is legal, however, to reactivate it later by calling, [`sc_refcount_init`](@ref).
+
+### Prototype
+```c
+int sc_refcount_unref (sc_refcount_t * rc);
+```
+"""
+function sc_refcount_unref(rc)
+    @ccall libsc.sc_refcount_unref(rc::Ptr{sc_refcount_t})::Cint
+end
+
+"""
+    sc_refcount_is_active(rc)
+
+Check whether a reference counter has a positive value. This means that the reference counter is in use and corresponds to a live object.
+
+# Arguments
+* `rc`:\\[in\\] A reference counter.
+# Returns
+True if the count is greater zero, false otherwise.
+### Prototype
+```c
+int sc_refcount_is_active (const sc_refcount_t * rc);
+```
+"""
+function sc_refcount_is_active(rc)
+    @ccall libsc.sc_refcount_is_active(rc::Ptr{sc_refcount_t})::Cint
+end
+
+"""
+    sc_refcount_is_last(rc)
+
+Check whether a reference counter has value one. This means that this counter is the last of its kind, which we may optimize for.
+
+# Arguments
+* `rc`:\\[in\\] A reference counter.
+# Returns
+True if the count is exactly one.
+### Prototype
+```c
+int sc_refcount_is_last (const sc_refcount_t * rc);
+```
+"""
+function sc_refcount_is_last(rc)
+    @ccall libsc.sc_refcount_is_last(rc::Ptr{sc_refcount_t})::Cint
+end
 
 mutable struct t8_ctree end
 
@@ -4393,6 +3550,42 @@ void t8_cmesh_set_dimension (t8_cmesh_t cmesh, int dim);
 function t8_cmesh_set_dimension(cmesh, dim)
     @ccall libt8.t8_cmesh_set_dimension(cmesh::t8_cmesh_t, dim::Cint)::Cvoid
 end
+
+"""
+    t8_eclass
+
+This enumeration contains all possible element classes.
+
+| Enumerator             | Note                                                                                                               |
+| :--------------------- | :----------------------------------------------------------------------------------------------------------------- |
+| T8\\_ECLASS\\_ZERO     | Zero-dimensional element class.                                                                                    |
+| T8\\_ECLASS\\_VERTEX   | The vertex is the only zero-dimensional element class.                                                             |
+| T8\\_ECLASS\\_LINE     | The line is the only one-dimensional element class.                                                                |
+| T8\\_ECLASS\\_QUAD     | The quadrilateral is one of two element classes in two dimensions.                                                 |
+| T8\\_ECLASS\\_TRIANGLE | The element class for a triangle.                                                                                  |
+| T8\\_ECLASS\\_HEX      | The hexahedron is one three-dimensional element class.                                                             |
+| T8\\_ECLASS\\_TET      | The tetrahedron is another three-dimensional element class.                                                        |
+| T8\\_ECLASS\\_PRISM    | The prism has five sides: two opposing triangles joined by three quadrilaterals.                                   |
+| T8\\_ECLASS\\_PYRAMID  | The pyramid has a quadrilateral as base and four triangles as sides.                                               |
+| T8\\_ECLASS\\_COUNT    | This is no element class but can be used as the number of element classes.                                         |
+| T8\\_ECLASS\\_INVALID  | This is no element class but can be used for the case a class of a third party library is not supported by t8code  |
+"""
+@cenum t8_eclass::UInt32 begin
+    T8_ECLASS_ZERO = 0
+    T8_ECLASS_VERTEX = 0
+    T8_ECLASS_LINE = 1
+    T8_ECLASS_QUAD = 2
+    T8_ECLASS_TRIANGLE = 3
+    T8_ECLASS_HEX = 4
+    T8_ECLASS_TET = 5
+    T8_ECLASS_PRISM = 6
+    T8_ECLASS_PYRAMID = 7
+    T8_ECLASS_COUNT = 8
+    T8_ECLASS_INVALID = 9
+end
+
+"""This enumeration contains all possible element classes."""
+const t8_eclass_t = t8_eclass
 
 """
     t8_cmesh_set_tree_class(cmesh, gtree_id, tree_class)
@@ -9564,6 +8757,11 @@ function t8_element_array_init_view(view, array, offset, length)
     @ccall libt8.t8_element_array_init_view(view::Ptr{t8_element_array_t}, array::Ptr{t8_element_array_t}, offset::Csize_t, length::Csize_t)::Cvoid
 end
 
+mutable struct t8_element end
+
+"""Opaque structure for a generic element, only used as pointer. Implementations are free to cast it to their internal data structure."""
+const t8_element_t = t8_element
+
 """
     t8_element_array_init_data(view, base, scheme, tree_class, elem_count)
 
@@ -9905,6 +9103,25 @@ sc_array_t * t8_element_array_get_array_mutable (t8_element_array_t *element_arr
 """
 function t8_element_array_get_array_mutable(element_array)
     @ccall libt8.t8_element_array_get_array_mutable(element_array::Ptr{t8_element_array_t})::Ptr{sc_array_t}
+end
+
+"""
+    t8_element_array_find(element_array, element)
+
+Search for an element in an array.
+
+# Arguments
+* `element_array`:\\[in\\] Array structure.
+* `element`:\\[in\\] Element to be found in *element_array*.  The element must have been created with the scheme used in *element_array*.
+# Returns
+If *element* was found in *element_array* then the position in the array is returned. If the element is not found, -1 is returned.
+### Prototype
+```c
+t8_locidx_t t8_element_array_find (const t8_element_array_t *element_array, const t8_element_t *element);
+```
+"""
+function t8_element_array_find(element_array, element)
+    @ccall libt8.t8_element_array_find(element_array::Ptr{t8_element_array_t}, element::Ptr{t8_element_t})::t8_locidx_t
 end
 
 """
@@ -10364,6 +9581,193 @@ int t8_shmem_array_binary_search (t8_shmem_array_t array, const t8_gloidx_t valu
 """
 function t8_shmem_array_binary_search(array, value, size, compare)
     @ccall libt8.t8_shmem_array_binary_search(array::t8_shmem_array_t, value::t8_gloidx_t, size::Cint, compare::Ptr{Cvoid})::Cint
+end
+
+"""
+    t8_eclass_count_boundary(theclass, min_dim, per_eclass)
+
+Query the element class and count of boundary points.
+
+# Arguments
+* `theclass`:\\[in\\] We query a point of this element class.
+* `min_dim`:\\[in\\] Ignore boundary points of lesser dimension. The ignored points get a count value of 0.
+* `per_eclass`:\\[out\\] Array of length T8\\_ECLASS\\_COUNT to be filled with the count of the boundary objects, counted per each of the element classes.
+# Returns
+The count over all boundary points.
+### Prototype
+```c
+int t8_eclass_count_boundary (t8_eclass_t theclass, int min_dim, int *per_eclass);
+```
+"""
+function t8_eclass_count_boundary(theclass, min_dim, per_eclass)
+    @ccall libt8.t8_eclass_count_boundary(theclass::t8_eclass_t, min_dim::Cint, per_eclass::Ptr{Cint})::Cint
+end
+
+"""
+    t8_eclass_compare(eclass1, eclass2)
+
+Compare two eclasses of the same dimension as necessary for face neighbor orientation. The implemented order is Triangle < Square in 2D and Tet < Hex < Prism < Pyramid in 3D.
+
+# Arguments
+* `eclass1`:\\[in\\] The first eclass to compare.
+* `eclass2`:\\[in\\] The second eclass to compare.
+# Returns
+0 if the eclasses are equal, 1 if eclass1 > eclass2 and -1 if eclass1 < eclass2
+### Prototype
+```c
+int t8_eclass_compare (t8_eclass_t eclass1, t8_eclass_t eclass2);
+```
+"""
+function t8_eclass_compare(eclass1, eclass2)
+    @ccall libt8.t8_eclass_compare(eclass1::t8_eclass_t, eclass2::t8_eclass_t)::Cint
+end
+
+"""
+    t8_eclass_is_valid(eclass)
+
+Check whether a class is a valid class. Returns non-zero if it is a valid class, returns zero, if the class is equal to T8\\_ECLASS\\_INVALID.
+
+# Arguments
+* `eclass`:\\[in\\] The eclass to check.
+# Returns
+Non-zero if *eclass* is valid, zero otherwise.
+### Prototype
+```c
+int t8_eclass_is_valid (t8_eclass_t eclass);
+```
+"""
+function t8_eclass_is_valid(eclass)
+    @ccall libt8.t8_eclass_is_valid(eclass::t8_eclass_t)::Cint
+end
+
+"""Type definition for the geometric shape of an element. Currently the possible shapes are the same as the possible element classes. I.e. T8\\_ECLASS\\_VERTEX, T8\\_ECLASS\\_TET, etc..."""
+const t8_element_shape_t = t8_eclass_t
+
+"""
+    t8_element_shape_num_faces(element_shape)
+
+The number of codimension-one boundaries of an element class.
+
+### Prototype
+```c
+int t8_element_shape_num_faces (int element_shape);
+```
+"""
+function t8_element_shape_num_faces(element_shape)
+    @ccall libt8.t8_element_shape_num_faces(element_shape::Cint)::Cint
+end
+
+"""
+    t8_element_shape_max_num_faces(element_shape)
+
+For each dimension the maximum possible number of faces of an element\\_shape of that dimension.
+
+### Prototype
+```c
+int t8_element_shape_max_num_faces (int element_shape);
+```
+"""
+function t8_element_shape_max_num_faces(element_shape)
+    @ccall libt8.t8_element_shape_max_num_faces(element_shape::Cint)::Cint
+end
+
+"""
+    t8_element_shape_num_vertices(element_shape)
+
+The number of vertices of an element class.
+
+### Prototype
+```c
+int t8_element_shape_num_vertices (int element_shape);
+```
+"""
+function t8_element_shape_num_vertices(element_shape)
+    @ccall libt8.t8_element_shape_num_vertices(element_shape::Cint)::Cint
+end
+
+"""
+    t8_element_shape_vtk_type(element_shape)
+
+The vtk cell type for the element\\_shape
+
+### Prototype
+```c
+int t8_element_shape_vtk_type (int element_shape);
+```
+"""
+function t8_element_shape_vtk_type(element_shape)
+    @ccall libt8.t8_element_shape_vtk_type(element_shape::Cint)::Cint
+end
+
+"""
+    t8_element_shape_t8_to_vtk_corner_number(element_shape, index)
+
+Maps the t8code corner number of the element to the vtk corner number
+
+# Arguments
+* `element_shape`:\\[in\\] The shape of the element.
+* `index`:\\[in\\] The index of the corner in z-order (t8code numeration).
+# Returns
+The corresponding vtk index.
+### Prototype
+```c
+int t8_element_shape_t8_to_vtk_corner_number (int element_shape, int index);
+```
+"""
+function t8_element_shape_t8_to_vtk_corner_number(element_shape, index)
+    @ccall libt8.t8_element_shape_t8_to_vtk_corner_number(element_shape::Cint, index::Cint)::Cint
+end
+
+"""
+    t8_element_shape_t8_corner_number(element_shape, index)
+
+Maps the vtk corner number of the element to the t8code corner number
+
+# Arguments
+* `element_shape`:\\[in\\] The shape of the element.
+* `index`:\\[in\\] The index of the corner in vtk ordering.
+# Returns
+The corresponding t8code index.
+### Prototype
+```c
+int t8_element_shape_t8_corner_number (int element_shape, int index);
+```
+"""
+function t8_element_shape_t8_corner_number(element_shape, index)
+    @ccall libt8.t8_element_shape_t8_corner_number(element_shape::Cint, index::Cint)::Cint
+end
+
+"""
+    t8_element_shape_to_string(element_shape)
+
+For each element\\_shape, the name of this class as a string
+
+### Prototype
+```c
+const char* t8_element_shape_to_string (int element_shape);
+```
+"""
+function t8_element_shape_to_string(element_shape)
+    @ccall libt8.t8_element_shape_to_string(element_shape::Cint)::Cstring
+end
+
+"""
+    t8_element_shape_compare(element_shape1, element_shape2)
+
+Compare two element\\_shapes of the same dimension as necessary for face neighbor orientation. The implemented order is Triangle < Square in 2D and Tet < Hex < Prism < Pyramid in 3D.
+
+# Arguments
+* `element_shape1`:\\[in\\] The first element\\_shape to compare.
+* `element_shape2`:\\[in\\] The second element\\_shape to compare.
+# Returns
+0 if the element\\_shapes are equal, 1 if element\\_shape1 > element\\_shape2 and -1 if element\\_shape1 < element\\_shape2
+### Prototype
+```c
+int t8_element_shape_compare (t8_element_shape_t element_shape1, t8_element_shape_t element_shape2);
+```
+"""
+function t8_element_shape_compare(element_shape1, element_shape2)
+    @ccall libt8.t8_element_shape_compare(element_shape1::t8_element_shape_t, element_shape2::t8_element_shape_t)::Cint
 end
 
 """
@@ -11407,7 +10811,7 @@ Set a source forest with an adapt function to be adapted on committing. By defau
 * `recursive`:\\[in\\] A flag specifying whether adaptation is to be done recursively or not. If the value is zero, adaptation is not recursive and it is recursive otherwise.
 ### Prototype
 ```c
-void t8_forest_set_adapt (t8_forest_t forest, const t8_forest_t set_from, t8_forest_adapt_t adapt_fn, int recursive);
+void t8_forest_set_adapt (t8_forest_t forest, const t8_forest_t set_from, t8_forest_adapt_t adapt_fn, const int recursive);
 ```
 """
 function t8_forest_set_adapt(forest, set_from, adapt_fn, recursive)
@@ -11516,7 +10920,7 @@ Set a source forest to be partitioned during commit. The partitioning is done ac
 # Arguments
 * `forest`:\\[in,out\\] The forest.
 * `set_from`:\\[in\\] A second forest that should be partitioned. We take ownership. This can be prevented by referencing **set_from**. If NULL, a previously (or later) set forest will be taken (t8_forest_set_adapt, t8_forest_set_balance).
-* `set_for_coarsening`:\\[in\\] CURRENTLY DISABLED. If true, then the partitions are choose such that coarsening an element once is a process local operation.
+* `set_for_coarsening`:\\[in\\] If true, the partition will be such that coarsening a family of elements into their parent once is a process-local operation. This is ensured by a post-processing step that slightly shifts the newly determined process boundaries such that no full family of (same-level) siblings is split between processes.
 ### Prototype
 ```c
 void t8_forest_set_partition (t8_forest_t forest, const t8_forest_t set_from, int set_for_coarsening);
@@ -11917,6 +11321,31 @@ int t8_forest_element_is_leaf (const t8_forest_t forest, const t8_element_t *ele
 """
 function t8_forest_element_is_leaf(forest, element, local_tree)
     @ccall libt8.t8_forest_element_is_leaf(forest::t8_forest_t, element::Ptr{t8_element_t}, local_tree::t8_locidx_t)::Cint
+end
+
+"""
+    t8_forest_element_is_leaf_or_ghost(forest, element, local_tree, check_ghost)
+
+Query whether a given element or a ghost is a leaf of a local or ghost tree in a forest.
+
+!!! note
+
+    *forest* must be committed before calling this function. t8_forest_element_is_leaf t8_forest_element_is_ghost
+
+# Arguments
+* `forest`:\\[in\\] The forest.
+* `element`:\\[in\\] An element of a local tree in *forest*.
+* `local_tree`:\\[in\\] A local tree id of *forest* or a ghost tree id
+* `check_ghost`:\\[in\\] If true *element* is interpreted as a ghost element and *local_tree* as the id of a ghost tree (0 <= *local_tree* < num\\_ghost\\_trees). If false *element* is interpreted as an element and *local_tree* as the id of a local tree (0 <= *local_tree* < num\\_local\\_trees).
+# Returns
+True (non-zero) if and only if *element* is a leaf (or ghost) in *local_tree* of *forest*.
+### Prototype
+```c
+int t8_forest_element_is_leaf_or_ghost (const t8_forest_t forest, const t8_element_t *element, const t8_locidx_t local_tree, const int check_ghost);
+```
+"""
+function t8_forest_element_is_leaf_or_ghost(forest, element, local_tree, check_ghost)
+    @ccall libt8.t8_forest_element_is_leaf_or_ghost(forest::t8_forest_t, element::Ptr{t8_element_t}, local_tree::t8_locidx_t, check_ghost::Cint)::Cint
 end
 
 """
@@ -12740,6 +12169,9 @@ function t8_forest_element_face_normal(forest, ltreeid, element, face, normal)
     @ccall libt8.t8_forest_element_face_normal(forest::t8_forest_t, ltreeid::t8_locidx_t, element::Ptr{t8_element_t}, face::Cint, normal::Ptr{Cdouble})::Cvoid
 end
 
+"""We can reuse the reference counter type from libsc."""
+const t8_refcount_t = sc_refcount_t
+
 """
     t8_forest_ghost
 
@@ -12922,7 +12354,7 @@ Given a local ghost tree compute the global tree id of it.
 
 # Arguments
 * `forest`:\\[in\\] The forest. Ghost layer must exist.
-* `lghost_tree`:\\[in\\] The ghost tree id of a ghost tree.
+* `lghost_tree`:\\[in\\] The ghost tree id of a ghost tree. (0 <= *lghost_tree* < num\\_ghost\\_trees)
 # Returns
 The global id of the local ghost tree *lghost_tree*. *forest* must be committed before calling this function.
 # See also
@@ -12955,6 +12387,30 @@ t8_element_t * t8_forest_ghost_get_leaf_element (t8_forest_t forest, t8_locidx_t
 """
 function t8_forest_ghost_get_leaf_element(forest, lghost_tree, lelement)
     @ccall libt8.t8_forest_ghost_get_leaf_element(forest::t8_forest_t, lghost_tree::t8_locidx_t, lelement::t8_locidx_t)::Ptr{t8_element_t}
+end
+
+"""
+    t8_forest_element_is_ghost(forest, element, lghost_tree)
+
+Query whether a given element is a ghost of a certrain tree in a forest.
+
+!!! note
+
+    *forest* must be committed before calling this function.
+
+# Arguments
+* `forest`:\\[in\\] The forest.
+* `element`:\\[in\\] An element of a ghost tree in *forest*.
+* `lghost_tree`:\\[in\\] A local ghost tree id of *forest*. (0 <= *lghost_tree* < num\\_ghost\\_trees)
+# Returns
+True (non-zero) if and only if *element* is a ghost in *lghost_tree* of *forest*.
+### Prototype
+```c
+int t8_forest_element_is_ghost (const t8_forest_t forest, const t8_element_t *element, const t8_locidx_t lghost_tree);
+```
+"""
+function t8_forest_element_is_ghost(forest, element, lghost_tree)
+    @ccall libt8.t8_forest_element_is_ghost(forest::t8_forest_t, element::Ptr{t8_element_t}, lghost_tree::t8_locidx_t)::Cint
 end
 
 """
@@ -13125,6 +12581,37 @@ void t8_forest_save (t8_forest_t forest);
 """
 function t8_forest_save(forest)
     @ccall libt8.t8_forest_save(forest::t8_forest_t)::Cvoid
+end
+
+"""
+    t8_vtk_data_type_t
+
+TODO: Add support for integer data type.
+
+| Enumerator        | Note                          |
+| :---------------- | :---------------------------- |
+| T8\\_VTK\\_SCALAR | One double value per element  |
+| T8\\_VTK\\_VECTOR | 3 double values per element   |
+"""
+@cenum t8_vtk_data_type_t::UInt32 begin
+    T8_VTK_SCALAR = 0
+    T8_VTK_VECTOR = 1
+end
+
+"""
+    t8_vtk_data_field_t
+
+A data field for VTK output. This struct is used to store data that is written to the VTK files. It contains the type of the data, a description, and the actual data array.
+
+| Field       | Note                                       |
+| :---------- | :----------------------------------------- |
+| type        | Describes of which type the data array is  |
+| description | String that describes the data.            |
+"""
+struct t8_vtk_data_field_t
+    type::t8_vtk_data_type_t
+    description::NTuple{8192, Cchar}
+    data::Ptr{Cdouble}
 end
 
 """
@@ -13505,7 +12992,7 @@ end
 """
     t8_forest_pfc_correction_offsets(forest)
 
-Correct the partitioning if element families are split accorss process boundaries.
+Correct the partitioning if element families are split across process boundaries.
 
 The default partitioning distributes the elements into equally-sized partitions. For coarsening, however, all elements of a family have to be on the same process in order to be coarsened into their parent element. This function corrects the partitioning such that no families are split across process boundaries. The price to be paid is a slight deviation from the optimal balance of elements among processors.
 
@@ -13786,155 +13273,6 @@ const t8_profile_struct_t = t8_profile
 
 """This struct stores various information about a forest's ghost elements and ghost trees."""
 const t8_forest_ghost_struct_t = t8_forest_ghost
-
-# typedef int ( * t8_fortran_adapt_coordinate_callback ) ( double x , double y , double z , int is_family )
-const t8_fortran_adapt_coordinate_callback = Ptr{Cvoid}
-
-const MPI_T8_Fint = Cint
-
-"""
-    t8_fortran_init_all(comm)
-
-### Prototype
-```c
-void t8_fortran_init_all (sc_MPI_Comm *comm);
-```
-"""
-function t8_fortran_init_all(comm)
-    @ccall libt8.t8_fortran_init_all(comm::Ptr{Cint})::Cvoid
-end
-
-# no prototype is found for this function at t8_fortran_interface.h:67:1, please use with caution
-"""
-    t8_fortran_finalize()
-
-Finalize sc. This wraps [`sc_finalize`](@ref) in order to have consistent naming with [`t8_fortran_init_all`](@ref).
-
-### Prototype
-```c
-void t8_fortran_finalize ();
-```
-"""
-function t8_fortran_finalize()
-    @ccall libt8.t8_fortran_finalize()::Cvoid
-end
-
-"""
-    t8_fortran_cmesh_commit(cmesh, comm)
-
-### Prototype
-```c
-void t8_fortran_cmesh_commit (t8_cmesh_t cmesh, sc_MPI_Comm *comm);
-```
-"""
-function t8_fortran_cmesh_commit(cmesh, comm)
-    @ccall libt8.t8_fortran_cmesh_commit(cmesh::t8_cmesh_t, comm::Ptr{Cint})::Cvoid
-end
-
-"""
-    t8_fortran_cmesh_set_join_by_stash_noConn(cmesh, do_both_directions)
-
-This function calls [`t8_cmesh_set_join_by_stash`](@ref) with connectivity = NULL.
-
-!!! warning
-
-    This routine might be too expensive for very large meshes. In this case,  consider to use a fully featured mesh generator.
-
-!!! note
-
-    This routine does not detect periodic boundaries.
-
-# Arguments
-* `cmesh`:\\[in,out\\] Pointer to a t8code cmesh object. If set to NULL this argument is ignored.
-* `do_both_directions`:\\[in\\] Compute the connectivity from both neighboring sides. Takes much longer to compute.
-### Prototype
-```c
-void t8_fortran_cmesh_set_join_by_stash_noConn (t8_cmesh_t cmesh, const int do_both_directions);
-```
-"""
-function t8_fortran_cmesh_set_join_by_stash_noConn(cmesh, do_both_directions)
-    @ccall libt8.t8_fortran_cmesh_set_join_by_stash_noConn(cmesh::t8_cmesh_t, do_both_directions::Cint)::Cvoid
-end
-
-"""
-    t8_fortran_MPI_Comm_new(Fcomm)
-
-### Prototype
-```c
-sc_MPI_Comm * t8_fortran_MPI_Comm_new (MPI_T8_Fint Fcomm);
-```
-"""
-function t8_fortran_MPI_Comm_new(Fcomm)
-    @ccall libt8.t8_fortran_MPI_Comm_new(Fcomm::MPI_T8_Fint)::Ptr{Cint}
-end
-
-"""
-    t8_fortran_MPI_Comm_delete(Ccomm)
-
-### Prototype
-```c
-void t8_fortran_MPI_Comm_delete (sc_MPI_Comm *Ccomm);
-```
-"""
-function t8_fortran_MPI_Comm_delete(Ccomm)
-    @ccall libt8.t8_fortran_MPI_Comm_delete(Ccomm::Ptr{Cint})::Cvoid
-end
-
-"""
-    t8_cmesh_new_periodic_tri_wrap(Ccomm)
-
-### Prototype
-```c
-t8_cmesh_t t8_cmesh_new_periodic_tri_wrap (sc_MPI_Comm *Ccomm);
-```
-"""
-function t8_cmesh_new_periodic_tri_wrap(Ccomm)
-    @ccall libt8.t8_cmesh_new_periodic_tri_wrap(Ccomm::Ptr{Cint})::t8_cmesh_t
-end
-
-"""
-    t8_forest_new_uniform_default(cmesh, level, do_face_ghost, comm)
-
-### Prototype
-```c
-t8_forest_t t8_forest_new_uniform_default (t8_cmesh_t cmesh, int level, int do_face_ghost, sc_MPI_Comm *comm);
-```
-"""
-function t8_forest_new_uniform_default(cmesh, level, do_face_ghost, comm)
-    @ccall libt8.t8_forest_new_uniform_default(cmesh::t8_cmesh_t, level::Cint, do_face_ghost::Cint, comm::Ptr{Cint})::t8_forest_t
-end
-
-"""
-    t8_forest_adapt_by_coordinates(forest, recursive, callback)
-
-# Arguments
-* `forest`:\\[in,out\\] The forest
-* `recursive`:\\[in\\] A flag specifying whether adaptation is to be done recursively or not. If the value is zero, adaptation is not recursive and it is recursive otherwise.
-* `callback`:\\[in\\] A pointer to a user defined function. t8code will never touch the function.
-### Prototype
-```c
-t8_forest_t t8_forest_adapt_by_coordinates (t8_forest_t forest, int recursive, t8_fortran_adapt_coordinate_callback callback);
-```
-"""
-function t8_forest_adapt_by_coordinates(forest, recursive, callback)
-    @ccall libt8.t8_forest_adapt_by_coordinates(forest::t8_forest_t, recursive::Cint, callback::t8_fortran_adapt_coordinate_callback)::t8_forest_t
-end
-
-"""
-    t8_global_productionf_noargs(string)
-
-Log a message on the root rank with priority [`SC_LP_PRODUCTION`](@ref).
-
-# Arguments
-* `string`:\\[in\\] String to log.
-### Prototype
-```c
-void t8_global_productionf_noargs (const char *string);
-```
-"""
-function t8_global_productionf_noargs(string)
-    @ccall libt8.t8_global_productionf_noargs(string::Cstring)::Cvoid
-end
 
 """
     t8_geometry_type
@@ -14389,6 +13727,283 @@ void t8_cmesh_set_tree_vertices (t8_cmesh_t cmesh, const t8_gloidx_t gtree_id, c
 """
 function t8_cmesh_set_tree_vertices(cmesh, gtree_id, vertices, num_vertices)
     @ccall libt8.t8_cmesh_set_tree_vertices(cmesh::t8_cmesh_t, gtree_id::t8_gloidx_t, vertices::Ptr{Cdouble}, num_vertices::Cint)::Cvoid
+end
+
+"""
+    t8_mat_init_xrot(mat, angle)
+
+Initialize given 3x3 matrix as rotation matrix around the x-axis with given angle.
+
+# Arguments
+* `mat`:\\[in,out\\] 3x3-matrix.
+* `angle`:\\[in\\] Rotation angle in radians.
+### Prototype
+```c
+static inline void t8_mat_init_xrot (double mat[3][3], const double angle);
+```
+"""
+function t8_mat_init_xrot(mat, angle)
+    @ccall libt8.t8_mat_init_xrot(mat::Ptr{NTuple{3, Cdouble}}, angle::Cdouble)::Cvoid
+end
+
+"""
+    t8_mat_init_yrot(mat, angle)
+
+Initialize given 3x3 matrix as rotation matrix around the y-axis with given angle.
+
+# Arguments
+* `mat`:\\[in,out\\] 3x3-matrix.
+* `angle`:\\[in\\] Rotation angle in radians.
+### Prototype
+```c
+static inline void t8_mat_init_yrot (double mat[3][3], const double angle);
+```
+"""
+function t8_mat_init_yrot(mat, angle)
+    @ccall libt8.t8_mat_init_yrot(mat::Ptr{NTuple{3, Cdouble}}, angle::Cdouble)::Cvoid
+end
+
+"""
+    t8_mat_init_zrot(mat, angle)
+
+Initialize given 3x3 matrix as rotation matrix around the z-axis with given angle.
+
+# Arguments
+* `mat`:\\[in,out\\] 3x3-matrix.
+* `angle`:\\[in\\] Rotation angle in radians.
+### Prototype
+```c
+static inline void t8_mat_init_zrot (double mat[3][3], const double angle);
+```
+"""
+function t8_mat_init_zrot(mat, angle)
+    @ccall libt8.t8_mat_init_zrot(mat::Ptr{NTuple{3, Cdouble}}, angle::Cdouble)::Cvoid
+end
+
+"""
+    t8_mat_mult_vec(mat, a, b)
+
+Apply matrix-matrix multiplication: b = M*a.
+
+# Arguments
+* `mat`:\\[in\\] 3x3-matrix.
+* `a`:\\[in\\] 3-vector.
+* `b`:\\[in,out\\] 3-vector.
+### Prototype
+```c
+static inline void t8_mat_mult_vec (const double mat[3][3], const double a[3], double b[3]);
+```
+"""
+function t8_mat_mult_vec(mat, a, b)
+    @ccall libt8.t8_mat_mult_vec(mat::Ptr{NTuple{3, Cdouble}}, a::Ptr{Cdouble}, b::Ptr{Cdouble})::Cvoid
+end
+
+"""
+    t8_mat_mult_mat(A, B, C)
+
+Apply matrix-matrix multiplication: C = A*B.
+
+# Arguments
+* `A`:\\[in\\] 3x3-matrix.
+* `B`:\\[in\\] 3x3-matrix.
+* `C`:\\[in,out\\] 3x3-matrix.
+### Prototype
+```c
+static inline void t8_mat_mult_mat (const double A[3][3], const double B[3][3], double C[3][3]);
+```
+"""
+function t8_mat_mult_mat(A, B, C)
+    @ccall libt8.t8_mat_mult_mat(A::Ptr{NTuple{3, Cdouble}}, B::Ptr{NTuple{3, Cdouble}}, C::Ptr{NTuple{3, Cdouble}})::Cvoid
+end
+
+"""
+    t8_refcount_init(rc)
+
+Initialize a reference counter to 1. It is legal if its status prior to this call is undefined.
+
+# Arguments
+* `rc`:\\[out\\] The reference counter is set to one by this call.
+### Prototype
+```c
+void t8_refcount_init (t8_refcount_t *rc);
+```
+"""
+function t8_refcount_init(rc)
+    @ccall libt8.t8_refcount_init(rc::Ptr{t8_refcount_t})::Cvoid
+end
+
+"""
+    t8_refcount_new()
+
+Create a new reference counter with count initialized to 1. Equivalent to calling [`t8_refcount_init`](@ref) on a newly allocated refcount\\_t. It is mandatory to free this with t8_refcount_destroy.
+
+# Returns
+An allocated reference counter whose count has been set to one.
+### Prototype
+```c
+t8_refcount_t * t8_refcount_new (void);
+```
+"""
+function t8_refcount_new()
+    @ccall libt8.t8_refcount_new()::Ptr{t8_refcount_t}
+end
+
+"""
+    t8_refcount_destroy(rc)
+
+Destroy a reference counter that we allocated with t8_refcount_new. Its reference count must have decreased to zero.
+
+# Arguments
+* `rc`:\\[in,out\\] Allocated, formerly valid reference counter.
+### Prototype
+```c
+void t8_refcount_destroy (t8_refcount_t *rc);
+```
+"""
+function t8_refcount_destroy(rc)
+    @ccall libt8.t8_refcount_destroy(rc::Ptr{t8_refcount_t})::Cvoid
+end
+
+# no prototype is found for this function at t8_version.h:67:1, please use with caution
+"""
+    t8_get_package_string()
+
+Return the package string of t8code. This string has the format "t8 version\\_number".
+
+# Returns
+The version string of t8code.
+### Prototype
+```c
+const char* t8_get_package_string ();
+```
+"""
+function t8_get_package_string()
+    @ccall libt8.t8_get_package_string()::Cstring
+end
+
+# no prototype is found for this function at t8_version.h:73:1, please use with caution
+"""
+    t8_get_version_number()
+
+Return the version number of t8code as a string.
+
+# Returns
+The version number of t8code as a string.
+### Prototype
+```c
+const char* t8_get_version_number ();
+```
+"""
+function t8_get_version_number()
+    @ccall libt8.t8_get_version_number()::Cstring
+end
+
+# no prototype is found for this function at t8_version.h:79:1, please use with caution
+"""
+    t8_get_version_point_string()
+
+Return the version point string.
+
+# Returns
+The version point point string.
+### Prototype
+```c
+const char* t8_get_version_point_string ();
+```
+"""
+function t8_get_version_point_string()
+    @ccall libt8.t8_get_version_point_string()::Cstring
+end
+
+# no prototype is found for this function at t8_version.h:85:1, please use with caution
+"""
+    t8_get_version_major()
+
+Return the major version number of t8code.
+
+# Returns
+The major version number of t8code.
+### Prototype
+```c
+int t8_get_version_major ();
+```
+"""
+function t8_get_version_major()
+    @ccall libt8.t8_get_version_major()::Cint
+end
+
+# no prototype is found for this function at t8_version.h:91:1, please use with caution
+"""
+    t8_get_version_minor()
+
+Return the minor version number of t8code.
+
+# Returns
+The minor version number of t8code.
+### Prototype
+```c
+int t8_get_version_minor ();
+```
+"""
+function t8_get_version_minor()
+    @ccall libt8.t8_get_version_minor()::Cint
+end
+
+# no prototype is found for this function at t8_version.h:97:1, please use with caution
+"""
+    t8_get_version_patch()
+
+Return the patch version number of t8code.
+
+# Returns
+The patch version number of t8code.
+### Prototype
+```c
+int t8_get_version_patch ();
+```
+"""
+function t8_get_version_patch()
+    @ccall libt8.t8_get_version_patch()::Cint
+end
+
+"""
+    getdelim(lineptr, n, delimiter, stream)
+
+### Prototype
+```c
+static ssize_t getdelim (char **lineptr, size_t *n, int delimiter, FILE *stream);
+```
+"""
+function getdelim(lineptr, n, delimiter, stream)
+    @ccall libt8.getdelim(lineptr::Ptr{Cstring}, n::Ptr{Cint}, delimiter::Cint, stream::Ptr{Cint})::Cint
+end
+
+"""
+    getline(lineptr, n, stream)
+
+### Prototype
+```c
+static ssize_t getline (char **lineptr, size_t *n, FILE *stream);
+```
+"""
+function getline(lineptr, n, stream)
+    @ccall libt8.getline(lineptr::Ptr{Cstring}, n::Ptr{Cint}, stream::Ptr{Cint})::Cint
+end
+
+"""
+    strsep(stringp, delim)
+
+Extract token from string up to a given delimiter.
+
+For a full description see https://linux.die.net/man/3/[`strsep`](@ref)
+
+### Prototype
+```c
+static char * strsep (char **stringp, const char *delim);
+```
+"""
+function strsep(stringp, delim)
+    @ccall libt8.strsep(stringp::Ptr{Cstring}, delim::Cstring)::Cstring
 end
 
 """
@@ -15613,6 +15228,350 @@ function t8_element_MPI_Unpack(scheme, tree_class, recvbuf, buffer_size, positio
 end
 
 """
+    t8_norm(vec)
+
+Vector norm.
+
+# Arguments
+* `vec`:\\[in\\] A 3D vector.
+# Returns
+The norm of *vec*.
+### Prototype
+```c
+double t8_norm (const double vec[3]);
+```
+"""
+function t8_norm(vec)
+    @ccall libt8.t8_norm(vec::Ptr{Cdouble})::Cdouble
+end
+
+"""
+    t8_normalize(vec)
+
+Normalize a vector.
+
+# Arguments
+* `vec`:\\[in,out\\] A 3D vector.
+### Prototype
+```c
+void t8_normalize (double vec[3]);
+```
+"""
+function t8_normalize(vec)
+    @ccall libt8.t8_normalize(vec::Ptr{Cdouble})::Cvoid
+end
+
+"""
+    t8_copy(dimensional_in, dimensional_out)
+
+Make a copy of a dimensional object.
+
+# Arguments
+* `dimensional_in`:\\[in\\]
+* `dimensional_out`:\\[out\\]
+### Prototype
+```c
+void t8_copy (const double dimensional_in[3], double dimensional_out[3]);
+```
+"""
+function t8_copy(dimensional_in, dimensional_out)
+    @ccall libt8.t8_copy(dimensional_in::Ptr{Cdouble}, dimensional_out::Ptr{Cdouble})::Cvoid
+end
+
+"""
+    t8_dist(vec_x, vec_y)
+
+Euclidean distance of X and Y.
+
+# Arguments
+* `vec_x`:\\[in\\] A 3D vector.
+* `vec_y`:\\[in\\] A 3D vector.
+# Returns
+The euclidean distance. Equivalent to norm (X-Y).
+### Prototype
+```c
+double t8_dist (const double vec_x[3], const double vec_y[3]);
+```
+"""
+function t8_dist(vec_x, vec_y)
+    @ccall libt8.t8_dist(vec_x::Ptr{Cdouble}, vec_y::Ptr{Cdouble})::Cdouble
+end
+
+"""
+    t8_ax(vec_x, alpha)
+
+Compute X = alpha * X
+
+# Arguments
+* `vec_x`:\\[in,out\\] A 3D vector. On output set to *alpha* * *vec_x*.
+* `alpha`:\\[in\\] A factor.
+### Prototype
+```c
+void t8_ax (double vec_x[3], const double alpha);
+```
+"""
+function t8_ax(vec_x, alpha)
+    @ccall libt8.t8_ax(vec_x::Ptr{Cdouble}, alpha::Cdouble)::Cvoid
+end
+
+"""
+    t8_axy(vec_x, vec_y, alpha)
+
+Compute Y = alpha * X
+
+# Arguments
+* `vec_x`:\\[in\\] A 3D vector.
+* `vec_y`:\\[out\\] On output set to *alpha* * *vec_x*.
+* `alpha`:\\[in\\] A factor.
+### Prototype
+```c
+void t8_axy (const double vec_x[3], double vec_y[3], const double alpha);
+```
+"""
+function t8_axy(vec_x, vec_y, alpha)
+    @ccall libt8.t8_axy(vec_x::Ptr{Cdouble}, vec_y::Ptr{Cdouble}, alpha::Cdouble)::Cvoid
+end
+
+"""
+    t8_axb(vec_x, vec_y, alpha, b)
+
+Y = alpha * X + b
+
+!!! note
+
+    It is possible that vec\\_x = vec\\_y on input to overwrite x
+
+# Arguments
+* `vec_x`:\\[in\\] A 3D vector.
+* `vec_y`:\\[out\\] On input, a 3D vector. On output set to *alpha* * *vec_x* + *b*.
+* `alpha`:\\[in\\] A factor.
+* `b`:\\[in\\] An offset.
+### Prototype
+```c
+void t8_axb (const double vec_x[3], double vec_y[3], const double alpha, const double b);
+```
+"""
+function t8_axb(vec_x, vec_y, alpha, b)
+    @ccall libt8.t8_axb(vec_x::Ptr{Cdouble}, vec_y::Ptr{Cdouble}, alpha::Cdouble, b::Cdouble)::Cvoid
+end
+
+"""
+    t8_axpy(vec_x, vec_y, alpha)
+
+Y = Y + alpha * X
+
+# Arguments
+* `vec_x`:\\[in\\] A 3D vector.
+* `vec_y`:\\[in,out\\] On input, a 3D vector. On output set *to* vec\\_y + *alpha* * *vec_x*
+* `alpha`:\\[in\\] A factor.
+### Prototype
+```c
+void t8_axpy (const double vec_x[3], double vec_y[3], const double alpha);
+```
+"""
+function t8_axpy(vec_x, vec_y, alpha)
+    @ccall libt8.t8_axpy(vec_x::Ptr{Cdouble}, vec_y::Ptr{Cdouble}, alpha::Cdouble)::Cvoid
+end
+
+"""
+    t8_axpyz(vec_x, vec_y, vec_z, alpha)
+
+Z = Y + alpha * X
+
+# Arguments
+* `vec_x`:\\[in\\] A 3D vector.
+* `vec_y`:\\[in\\] A 3D vector.
+* `vec_z`:\\[out\\] On output set *to* vec\\_y + *alpha* * *vec_x*
+* `alpha`:\\[in\\] A factor for the multiplication of *vec_x*.
+### Prototype
+```c
+void t8_axpyz (const double vec_x[3], const double vec_y[3], double vec_z[3], const double alpha);
+```
+"""
+function t8_axpyz(vec_x, vec_y, vec_z, alpha)
+    @ccall libt8.t8_axpyz(vec_x::Ptr{Cdouble}, vec_y::Ptr{Cdouble}, vec_z::Ptr{Cdouble}, alpha::Cdouble)::Cvoid
+end
+
+"""
+    t8_dot(vec_x, vec_y)
+
+Dot product of X and Y.
+
+# Arguments
+* `vec_x`:\\[in\\] A 3D vector.
+* `vec_y`:\\[in\\] A 3D vector.
+# Returns
+The dot product *vec_x* * *vec_y*
+### Prototype
+```c
+double t8_dot (const double vec_x[3], const double vec_y[3]);
+```
+"""
+function t8_dot(vec_x, vec_y)
+    @ccall libt8.t8_dot(vec_x::Ptr{Cdouble}, vec_y::Ptr{Cdouble})::Cdouble
+end
+
+"""
+    t8_cross_3D(vec_x, vec_y, cross)
+
+Cross product of X and Y
+
+# Arguments
+* `vec_x`:\\[in\\] A 3D vector.
+* `vec_y`:\\[in\\] A 3D vector.
+* `cross`:\\[out\\] On output, the cross product of *vec_x* and *vec_y*.
+### Prototype
+```c
+void t8_cross_3D (const double vec_x[3], const double vec_y[3], double cross[3]);
+```
+"""
+function t8_cross_3D(vec_x, vec_y, cross)
+    @ccall libt8.t8_cross_3D(vec_x::Ptr{Cdouble}, vec_y::Ptr{Cdouble}, cross::Ptr{Cdouble})::Cvoid
+end
+
+"""
+    t8_cross_2D(vec_x, vec_y)
+
+Cross product of X and Y
+
+# Arguments
+* `vec_x`:\\[in\\] A 2D vector.
+* `vec_y`:\\[in\\] A 2D vector.
+# Returns
+The cross product of *vec_x* and *vec_y*.
+### Prototype
+```c
+double t8_cross_2D (const double vec_x[2], const double vec_y[2]);
+```
+"""
+function t8_cross_2D(vec_x, vec_y)
+    @ccall libt8.t8_cross_2D(vec_x::Ptr{Cdouble}, vec_y::Ptr{Cdouble})::Cdouble
+end
+
+"""
+    t8_diff(vec_x, vec_y, diff)
+
+Compute the difference of two vectors.
+
+# Arguments
+* `vec_x`:\\[in\\] A 3D vector.
+* `vec_y`:\\[in\\] A 3D vector.
+* `diff`:\\[out\\] On output, the difference of *vec_x* and *vec_y*.
+### Prototype
+```c
+void t8_diff (const double vec_x[3], const double vec_y[3], double diff[3]);
+```
+"""
+function t8_diff(vec_x, vec_y, diff)
+    @ccall libt8.t8_diff(vec_x::Ptr{Cdouble}, vec_y::Ptr{Cdouble}, diff::Ptr{Cdouble})::Cvoid
+end
+
+"""
+    t8_eq(vec_x, vec_y, tol)
+
+Check the equality of two vectors elementwise
+
+# Arguments
+* `vec_x`:\\[in\\]
+* `vec_y`:\\[in\\]
+* `tol`:\\[in\\]
+# Returns
+true, if the vectors are equal up to *tol*
+### Prototype
+```c
+int t8_eq (const double vec_x[3], const double vec_y[3], const double tol);
+```
+"""
+function t8_eq(vec_x, vec_y, tol)
+    @ccall libt8.t8_eq(vec_x::Ptr{Cdouble}, vec_y::Ptr{Cdouble}, tol::Cdouble)::Cint
+end
+
+"""
+    t8_rescale(vec, new_length)
+
+Rescale a vector to a new length.
+
+# Arguments
+* `vec`:\\[in,out\\] A 3D vector.
+* `new_length`:\\[in\\] New length of the vector.
+### Prototype
+```c
+void t8_rescale (double vec[3], const double new_length);
+```
+"""
+function t8_rescale(vec, new_length)
+    @ccall libt8.t8_rescale(vec::Ptr{Cdouble}, new_length::Cdouble)::Cvoid
+end
+
+"""
+    t8_normal_of_tri(p1, p2, p3, normal)
+
+Compute the normal of a triangle given by its three vertices.
+
+# Arguments
+* `p1`:\\[in\\] A 3D vector.
+* `p2`:\\[in\\] A 3D vector.
+* `p3`:\\[in\\] A 3D vector.
+* `normal`:\\[out\\] vector of the triangle. (Not necessarily of length 1!)
+### Prototype
+```c
+void t8_normal_of_tri (const double p1[3], const double p2[3], const double p3[3], double normal[3]);
+```
+"""
+function t8_normal_of_tri(p1, p2, p3, normal)
+    @ccall libt8.t8_normal_of_tri(p1::Ptr{Cdouble}, p2::Ptr{Cdouble}, p3::Ptr{Cdouble}, normal::Ptr{Cdouble})::Cvoid
+end
+
+"""
+    t8_orthogonal_tripod(v1, v2, v3)
+
+Compute an orthogonal coordinate system from a given vector.
+
+# Arguments
+* `v1`:\\[in\\] 3D vector.
+* `v2`:\\[out\\] 3D vector.
+* `v3`:\\[out\\] 3D vector.
+### Prototype
+```c
+void t8_orthogonal_tripod (const double v1[3], double v2[3], double v3[3]);
+```
+"""
+function t8_orthogonal_tripod(v1, v2, v3)
+    @ccall libt8.t8_orthogonal_tripod(v1::Ptr{Cdouble}, v2::Ptr{Cdouble}, v3::Ptr{Cdouble})::Cvoid
+end
+
+"""
+    t8_swap(p1, p2)
+
+Swap the components of two vectors.
+
+# Arguments
+* `p1`:\\[in,out\\] A 3D vector.
+* `p2`:\\[in,out\\] A 3D vector.
+### Prototype
+```c
+void t8_swap (double p1[3], double p2[3]);
+```
+"""
+function t8_swap(p1, p2)
+    @ccall libt8.t8_swap(p1::Ptr{Cdouble}, p2::Ptr{Cdouble})::Cvoid
+end
+
+"""
+    t8_write_pvtu(filename, num_procs, write_tree, write_rank, write_level, write_id, num_data, data)
+
+Writes the pvtu header file that links to the processor local files. It is used by the cmesh and forest vtk routines. This function should only be called by one process. Return 0 on success.
+
+### Prototype
+```c
+int t8_write_pvtu (const char *filename, int num_procs, int write_tree, int write_rank, int write_level, int write_id, int num_data, t8_vtk_data_field_t *data);
+```
+"""
+function t8_write_pvtu(filename, num_procs, write_tree, write_rank, write_level, write_id, num_data, data)
+    @ccall libt8.t8_write_pvtu(filename::Cstring, num_procs::Cint, write_tree::Cint, write_rank::Cint, write_level::Cint, write_id::Cint, num_data::Cint, data::Ptr{t8_vtk_data_field_t})::Cint
+end
+
+"""
     vtk_file_type
 
 Enumerator for all types of files readable by t8code.
@@ -15663,7 +15622,7 @@ const vtk_read_success_t = vtk_read_success
 """
     t8_forest_vtk_write_file_via_API(forest, fileprefix, write_treeid, write_mpirank, write_level, write_element_id, curved_flag, write_ghosts, num_data, data)
 
-Write the forest in .pvtu file format. Writes one .vtu file per process and a meta .pvtu file. This function uses the vtk library. t8code must be configured with "--enable-vtk" in order to use it. Currently does not support pyramid elements.
+Write the forest in .pvtu file format. Writes one .vtu file per process and a meta .pvtu file. This function uses the vtk library. t8code must be configured with "-DT8CODE\\_ENABLE\\_VTK=ON" in order to use it. Currently does not support pyramid elements.
 
 !!! note
 
@@ -15694,7 +15653,7 @@ end
 """
     t8_forest_vtk_write_file(forest, fileprefix, write_treeid, write_mpirank, write_level, write_element_id, write_ghosts, num_data, data)
 
-Write the forest in .pvtu file format. Writes one .vtu file per process and a meta .pvtu file. This function writes ASCII files and can be used when t8code is not configure with "--enable-vtk" and t8_forest_vtk_write_file_via_API is not available.
+Write the forest in .pvtu file format. Writes one .vtu file per process and a meta .pvtu file. This function writes ASCII files and can be used when t8code is not configured with "-DT8CODE\\_ENABLE\\_VTK=ON" and t8_forest_vtk_write_file_via_API is not available.
 
 # Arguments
 * `forest`:\\[in\\] The forest.
@@ -15732,13 +15691,13 @@ end
 """
     t8_cmesh_vtk_write_file(cmesh, fileprefix)
 
-Write the cmesh in .pvtu file format. Writes one .vtu file per process and a meta .pvtu file. This function writes ASCII files and can be used when t8code is not configure with "--enable-vtk" and t8_cmesh_vtk_write_file_via_API is not available.
+Write the cmesh in .pvtu file format. Writes one .vtu file per process and a meta .pvtu file. This function writes ASCII files and can be used when t8code is not configured with "-DT8CODE\\_ENABLE\\_VTK=ON" and t8_cmesh_vtk_write_file_via_API is not available.
 
 # Arguments
 * `cmesh`:\\[in\\] The cmesh
 * `fileprefix`:\\[in\\] The prefix of the output files
 # Returns
-int
+True (nonzero) if successful, false (zero) otherwise
 ### Prototype
 ```c
 int t8_cmesh_vtk_write_file (t8_cmesh_t cmesh, const char *fileprefix);
@@ -17251,19 +17210,17 @@ function t8_eclass_scheme_is_default(scheme, eclass)
     @ccall libt8.t8_eclass_scheme_is_default(scheme::Ptr{Cint}, eclass::t8_eclass_t)::Cint
 end
 
-const SC_CC = "/usr/bin/mpicc"
+const SC_CC = "/opt/bin/x86_64-linux-gnu-libgfortran5-cxx11-mpi+mpich/x86_64-linux-gnu-gcc"
 
 const SC_CFLAGS = " "
 
-const SC_CPP = "/usr/bin/mpicc -E"
+const SC_CPP = "/opt/bin/x86_64-linux-gnu-libgfortran5-cxx11-mpi+mpich/x86_64-linux-gnu-gcc -E"
 
 const SC_CPPFLAGS = ""
 
 const SC_HAVE_ZLIB = 1
 
 const SC_ENABLE_PTHREAD = 1
-
-const SC_ENABLE_DEBUG = 1
 
 const SC_ENABLE_MEMALIGN = 1
 
@@ -17315,9 +17272,9 @@ const SC_SIZEOF_VOID_P = 8
 
 const SC_MEMALIGN_BYTES = SC_SIZEOF_VOID_P
 
-const SC_LDFLAGS = ""
+const SC_LDFLAGS = "-Wl,-rpath -Wl,/workspace/destdir/lib -Wl,--enable-new-dtags -L/workspace/x86_64-linux-gnu-libgfortran5-cxx11-mpi+mpich/destdir/lib"
 
-const SC_LIBS = "/usr/lib/libz.so m"
+const SC_LIBS = "/opt/x86_64-linux-gnu/x86_64-linux-gnu/sys-root/usr/local/lib/libz.so m"
 
 const SC_PACKAGE = "libsc"
 
@@ -17429,7 +17386,7 @@ const SC_LP_ERROR = 8
 
 const SC_LP_SILENT = 9
 
-const SC_LP_THRESHOLD = SC_LP_TRACE
+const SC_LP_THRESHOLD = SC_LP_INFO
 
 const T8_MPI_LOCIDX = sc_MPI_INT
 
@@ -17447,79 +17404,15 @@ const T8_PRECISION_EPS = SC_EPS
 
 const T8_PRECISION_SQRT_EPS = sqrt(T8_PRECISION_EPS)
 
-# Skipping MacroDefinition: T8_MPI_ECLASS_TYPE ( T8_ASSERT ( sizeof ( int ) == sizeof ( t8_eclass_t ) ) , sc_MPI_INT )
-
-const T8_ECLASS_MAX_FACES = 6
-
-const T8_ECLASS_MAX_EDGES = 12
-
-const T8_ECLASS_MAX_EDGES_2D = 4
-
-const T8_ECLASS_MAX_CORNERS_2D = 4
-
-const T8_ECLASS_MAX_CORNERS = 8
-
-const T8_ECLASS_MAX_DIM = 3
-
-const T8_ECLASS_MAX_CHILDREN = 10
-
-# Skipping MacroDefinition: T8_FACE_VERTEX_TO_TREE_VERTEX_VALUES { { { - 1 } } , /* vertex */ { { 0 } , { 1 } } , /* line */ { { 0 , 2 } , { 1 , 3 } , { 0 , 1 } , { 2 , 3 } } , /* quad */ { { 1 , 2 } , { 0 , 2 } , { 0 , 1 } } , /* triangle */ { { 0 , 2 , 4 , 6 } , { 1 , 3 , 5 , 7 } , { 0 , 1 , 4 , 5 } , { 2 , 3 , 6 , 7 } , { 0 , 1 , 2 , 3 } , { 4 , 5 , 6 , 7 } } , /* hex */ { { 1 , 2 , 3 } , { 0 , 2 , 3 } , { 0 , 1 , 3 } , { 0 , 1 , 2 } } , /* tet */ { { 1 , 2 , 4 , 5 } , { 0 , 2 , 3 , 5 } , { 0 , 1 , 3 , 4 } , { 0 , 1 , 2 } , { 3 , 4 , 5 } } , /* prism */ { { 0 , 2 , 4 } , { 1 , 3 , 4 } , { 0 , 1 , 4 } , { 2 , 3 , 4 } , { 0 , 1 , 2 , 3 } } /* pyramid */ \
-#}
-
-# Skipping MacroDefinition: T8_FACE_EDGE_TO_TREE_EDGE_VALUES { { { - 1 } } , /* vertex */ { { 0 } } , /* line */ { { 0 } , { 1 } , { 2 } , { 3 } } , /* quad */ { { 0 } , { 1 } , { 2 } } , /* triangle */ { { 8 , 10 , 4 , 6 } , { 9 , 11 , 5 , 7 } , { 8 , 9 , 0 , 2 } , { 10 , 11 , 1 , 3 } , { 4 , 5 , 0 , 1 } , { 6 , 7 , 2 , 3 } } , /* hex */ { { 3 , 4 , 5 } , { 1 , 2 , 5 } , { 0 , 2 , 4 } , { 0 , 1 , 3 } } , /* tet */ { { 0 , 7 , 3 , 6 } , { 1 , 8 , 4 , 7 } , { 2 , 6 , 5 , 8 } , { 0 , 1 , 2 } , { 3 , 4 , 5 } } , /* prism */ { { - 1 } } , /* pyramid */ \
-#}
-
-# Skipping MacroDefinition: T8_FACE_TO_EDGE_NEIGHBOR_VALUES { { { - 1 } } , /* vertex */ { { - 1 } } , /* line */ { { 2 , 3 } , { 2 , 3 } , { 0 , 1 } , { 0 , 1 } } , /* quad */ { { 2 , 1 } , { 2 , 0 } , { 1 , 0 } } , /* triangle */ { { 0 , 1 , 2 , 3 } , { 0 , 1 , 2 , 3 } , { 4 , 5 , 6 , 7 } , { 4 , 5 , 6 , 7 } , { 8 , 9 , 10 , 11 } , { 8 , 9 , 10 , 11 } } , /* hex */ { { 0 , 1 , 2 } , { 0 , 3 , 4 } , { 1 , 3 , 5 } , { 2 , 4 , 5 } } , /* tet */ { { 1 , 2 , 4 , 5 } , { 0 , 2 , 3 , 5 } , { 0 , 1 , 3 , 4 } , { 6 , 7 , 8 } , { 6 , 7 , 8 } } , /* prism */ { { - 1 } } , /* pyramid */ \
-#}
-
-# Skipping MacroDefinition: T8_EDGE_VERTEX_TO_TREE_VERTEX_VALUES { { { - 1 } } , /* vertex */ { { 0 } , { 1 } } , /* line */ { { 0 , 2 } , { 1 , 3 } , { 0 , 1 } , { 2 , 3 } } , /* quad */ { { 1 , 2 } , { 0 , 2 } , { 0 , 1 } } , /* triangle */ { { 0 , 1 } , { 2 , 3 } , { 4 , 5 } , { 6 , 7 } , { 0 , 2 } , { 1 , 3 } , { 4 , 6 } , { 5 , 7 } , { 0 , 4 } , { 1 , 5 } , { 2 , 6 } , { 3 , 7 } } , /* hex */ { { 0 , 1 } , { 0 , 2 } , { 0 , 3 } , { 1 , 2 } , { 1 , 3 } , { 2 , 3 } } , /* tet */ { { 1 , 2 } , { 0 , 2 } , { 0 , 1 } , { 4 , 5 } , { 3 , 5 } , { 3 , 4 } , { 1 , 4 } , { 2 , 5 } , { 0 , 3 } } , /* prism */ { { - 1 } } , /* pyramid */ \
-#}
-
-# Skipping MacroDefinition: T8_EDGE_TO_FACE_VALUES { { { - 1 } } , /* vertex */ { { 0 } } , /* line */ { { 0 } , { 1 } , { 2 } , { 3 } } , /* quad */ { { 0 } , { 1 } , { 2 } } , /* triangle */ { { 2 , 4 } , { 3 , 4 } , { 2 , 5 } , { 3 , 5 } , { 0 , 4 } , { 1 , 4 } , { 0 , 5 } , { 1 , 5 } , { 0 , 2 } , { 1 , 2 } , { 0 , 3 } , { 1 , 3 } } , /* hex */ { { 2 , 3 } , { 1 , 3 } , { 1 , 2 } , { 0 , 3 } , { 0 , 2 } , { 0 , 1 } } , /* tet */ { { 0 , 3 } , { 1 , 3 } , { 2 , 3 } , { 0 , 4 } , { 1 , 4 } , { 2 , 4 } , { 0 , 2 } , { 0 , 1 } , { 1 , 2 } } , /* prism */ { { - 1 } } , /* pyramid */ \
-#}
-
-# Skipping MacroDefinition: T8_ECLASS_FACE_ORIENTATION_VALUES { { 0 , - 1 , - 1 , - 1 , - 1 , - 1 } , /* vertex */ { 0 , 0 , - 1 , - 1 , - 1 , - 1 } , /* line */ { 0 , 0 , 0 , 0 , - 1 , - 1 } , /* quad */ { 0 , 0 , 0 , - 1 , - 1 , - 1 } , /* triangle */ { 0 , 1 , 1 , 0 , 0 , 1 } , /* hex */ { 0 , 1 , 0 , 1 , - 1 , - 1 } , /* tet */ { 1 , 0 , 1 , 0 , 1 , - 1 } , /* prism */ { 0 , 1 , 1 , 0 , 0 , - 1 } /* pyramid */ \
-#}
-
-# Skipping MacroDefinition: T8_ECLASS_VTK_TO_T8_CORNER_NUMBER_VALUES { { 0 , - 1 , - 1 , - 1 , - 1 , - 1 , - 1 , - 1 } , /* vertex */ { 0 , 1 , - 1 , - 1 , - 1 , - 1 , - 1 , - 1 } , /* line */ { 0 , 1 , 3 , 2 , - 1 , - 1 , - 1 , - 1 } , /* quad */ { 0 , 1 , 2 , - 1 , - 1 , - 1 , - 1 , - 1 } , /* triangle */ { 0 , 1 , 3 , 2 , 4 , 5 , 7 , 6 } , /* hex */ { 0 , 2 , 1 , 3 , - 1 , - 1 , - 1 , - 1 } , /* tet */ { 0 , 2 , 1 , 3 , 5 , 4 , - 1 , - 1 } , /* prism */ { 0 , 1 , 3 , 2 , 4 , - 1 , - 1 , - 1 } /* pyramid */ \
-#}
-
-# Skipping MacroDefinition: T8_ECLASS_T8_TO_VTK_CORNER_NUMBER_VALUES { { 0 , - 1 , - 1 , - 1 , - 1 , - 1 , - 1 , - 1 } , /* vertex */ { 0 , 1 , - 1 , - 1 , - 1 , - 1 , - 1 , - 1 } , /* line */ { 0 , 1 , 3 , 2 , - 1 , - 1 , - 1 , - 1 } , /* quad */ { 0 , 1 , 2 , - 1 , - 1 , - 1 , - 1 , - 1 } , /* triangle */ { 0 , 1 , 3 , 2 , 4 , 5 , 7 , 6 } , /* hex */ { 0 , 2 , 1 , 3 , - 1 , - 1 , - 1 , - 1 } , /* tet */ { 0 , 2 , 1 , 3 , 5 , 4 , - 1 , - 1 } , /* prism */ { 0 , 1 , 3 , 2 , 4 , - 1 , - 1 , - 1 } /* pyramid */ \
-#}
-
-# Skipping MacroDefinition: T8_ECLASS_FACE_TYPES_VALUES { { - 1 , - 1 , - 1 , - 1 , - 1 , - 1 } , /* vertex */ { 0 , 0 , - 1 , - 1 , - 1 , - 1 } , /* line */ { 1 , 1 , 1 , 1 , - 1 , - 1 } , /* quad */ { 1 , 1 , 1 , - 1 , - 1 , - 1 } , /* triangle */ { 2 , 2 , 2 , 2 , 2 , 2 } , /* hex */ { 3 , 3 , 3 , 3 , - 1 , - 1 } , /* tet */ { 2 , 2 , 2 , 3 , 3 , - 1 } , /* prism */ { 3 , 3 , 3 , 3 , 2 , - 1 } /* pyramid */ \
-#}
-
-# Skipping MacroDefinition: T8_ECLASS_BOUNDARY_COUNT_VALUES { { 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 } , /* vertex */ { 2 , 0 , 0 , 0 , 0 , 0 , 0 , 0 } , /* line */ { 4 , 4 , 0 , 0 , 0 , 0 , 0 , 0 } , /* quad */ { 3 , 3 , 0 , 0 , 0 , 0 , 0 , 0 } , /* triangle */ { 8 , 12 , 6 , 0 , 0 , 0 , 0 , 0 } , /* hex */ { 4 , 6 , 0 , 4 , 0 , 0 , 0 , 0 } , /* tet */ { 6 , 9 , 3 , 2 , 0 , 0 , 0 , 0 } , /* prism */ { 5 , 8 , 1 , 4 , 0 , 0 , 0 , 0 } /* pyramid */ \
-#}
-
-# Skipping MacroDefinition: T8_MPI_ELEMENT_SHAPE_TYPE ( T8_ASSERT ( sizeof ( int ) == sizeof ( t8_element_shape_t ) ) , sc_MPI_INT )
-
-const T8_ELEMENT_SHAPE_MAX_FACES = 6
-
-const T8_ELEMENT_SHAPE_MAX_CORNERS = 8
-
-const T8_VTK_LOCIDX = "Int32"
-
-const T8_VTK_GLOIDX = "Int32"
-
-const T8_VTK_FLOAT_NAME = "Float32"
-
-const T8_VTK_FLOAT_TYPE = Float32
-
-const T8_VTK_FORMAT_STRING = "ascii"
-
-# Skipping MacroDefinition: T8_THROW_ERROR_WITH @ "Invalid usage of T8_WITH_*. Use T8_ENABLE_* instead."
-
 const sc_mpi_read = sc_io_read
 
 const sc_mpi_write = sc_io_write
 
-const P4EST_CC = "/usr/bin/mpicc"
+const P4EST_CC = "/opt/x86_64-linux-gnu/x86_64-linux-gnu/sys-root/usr/local/bin/mpicc"
 
 const P4EST_CFLAGS = " "
 
-const P4EST_CPP = "/usr/bin/mpicc -E"
+const P4EST_CPP = "/opt/x86_64-linux-gnu/x86_64-linux-gnu/sys-root/usr/local/bin/mpicc -E"
 
 const P4EST_CPPFLAGS = ""
 
@@ -17528,8 +17421,6 @@ const P4EST_ENABLE_BUILD_2D = 1
 const P4EST_ENABLE_BUILD_3D = 1
 
 const P4EST_ENABLE_BUILD_P6EST = 1
-
-const P4EST_ENABLE_DEBUG = 1
 
 const P4EST_ENABLE_MEMALIGN = 1
 
@@ -17551,13 +17442,11 @@ const P4EST_ENABLE_VTK_COMPRESSION = 1
 
 const P4EST_HAVE_FSYNC = 1
 
-const HAVE_LPTHREAD = 1
-
 const P4EST_HAVE_POSIX_MEMALIGN = 1
 
 const P4EST_HAVE_ZLIB = 1
 
-const P4EST_LDFLAGS = ""
+const P4EST_LDFLAGS = "-Wl,-rpath -Wl,/workspace/destdir/lib -Wl,--enable-new-dtags -L/workspace/x86_64-linux-gnu-libgfortran5-cxx11-mpi+mpich/destdir/lib"
 
 const P4EST_LIBS = "   m"
 
@@ -17677,6 +17566,58 @@ const P8EST_ONDISK_FORMAT = 0x03000009
 
 const T8_SHMEM_BEST_TYPE = SC_SHMEM_WINDOW
 
+# Skipping MacroDefinition: T8_MPI_ECLASS_TYPE ( T8_ASSERT ( sizeof ( int ) == sizeof ( t8_eclass_t ) ) , sc_MPI_INT )
+
+const T8_ECLASS_MAX_FACES = 6
+
+const T8_ECLASS_MAX_EDGES = 12
+
+const T8_ECLASS_MAX_EDGES_2D = 4
+
+const T8_ECLASS_MAX_CORNERS_2D = 4
+
+const T8_ECLASS_MAX_CORNERS = 8
+
+const T8_ECLASS_MAX_DIM = 3
+
+const T8_ECLASS_MAX_CHILDREN = 10
+
+# Skipping MacroDefinition: T8_FACE_VERTEX_TO_TREE_VERTEX_VALUES { { { - 1 } } , /* vertex */ { { 0 } , { 1 } } , /* line */ { { 0 , 2 } , { 1 , 3 } , { 0 , 1 } , { 2 , 3 } } , /* quad */ { { 1 , 2 } , { 0 , 2 } , { 0 , 1 } } , /* triangle */ { { 0 , 2 , 4 , 6 } , { 1 , 3 , 5 , 7 } , { 0 , 1 , 4 , 5 } , { 2 , 3 , 6 , 7 } , { 0 , 1 , 2 , 3 } , { 4 , 5 , 6 , 7 } } , /* hex */ { { 1 , 2 , 3 } , { 0 , 2 , 3 } , { 0 , 1 , 3 } , { 0 , 1 , 2 } } , /* tet */ { { 1 , 2 , 4 , 5 } , { 0 , 2 , 3 , 5 } , { 0 , 1 , 3 , 4 } , { 0 , 1 , 2 } , { 3 , 4 , 5 } } , /* prism */ { { 0 , 2 , 4 } , { 1 , 3 , 4 } , { 0 , 1 , 4 } , { 2 , 3 , 4 } , { 0 , 1 , 2 , 3 } } /* pyramid */ \
+#}
+
+# Skipping MacroDefinition: T8_FACE_EDGE_TO_TREE_EDGE_VALUES { { { - 1 } } , /* vertex */ { { 0 } } , /* line */ { { 0 } , { 1 } , { 2 } , { 3 } } , /* quad */ { { 0 } , { 1 } , { 2 } } , /* triangle */ { { 8 , 10 , 4 , 6 } , { 9 , 11 , 5 , 7 } , { 8 , 9 , 0 , 2 } , { 10 , 11 , 1 , 3 } , { 4 , 5 , 0 , 1 } , { 6 , 7 , 2 , 3 } } , /* hex */ { { 3 , 4 , 5 } , { 1 , 2 , 5 } , { 0 , 2 , 4 } , { 0 , 1 , 3 } } , /* tet */ { { 0 , 7 , 3 , 6 } , { 1 , 8 , 4 , 7 } , { 2 , 6 , 5 , 8 } , { 0 , 1 , 2 } , { 3 , 4 , 5 } } , /* prism */ { { - 1 } } , /* pyramid */ \
+#}
+
+# Skipping MacroDefinition: T8_FACE_TO_EDGE_NEIGHBOR_VALUES { { { - 1 } } , /* vertex */ { { - 1 } } , /* line */ { { 2 , 3 } , { 2 , 3 } , { 0 , 1 } , { 0 , 1 } } , /* quad */ { { 2 , 1 } , { 2 , 0 } , { 1 , 0 } } , /* triangle */ { { 0 , 1 , 2 , 3 } , { 0 , 1 , 2 , 3 } , { 4 , 5 , 6 , 7 } , { 4 , 5 , 6 , 7 } , { 8 , 9 , 10 , 11 } , { 8 , 9 , 10 , 11 } } , /* hex */ { { 0 , 1 , 2 } , { 0 , 3 , 4 } , { 1 , 3 , 5 } , { 2 , 4 , 5 } } , /* tet */ { { 1 , 2 , 4 , 5 } , { 0 , 2 , 3 , 5 } , { 0 , 1 , 3 , 4 } , { 6 , 7 , 8 } , { 6 , 7 , 8 } } , /* prism */ { { - 1 } } , /* pyramid */ \
+#}
+
+# Skipping MacroDefinition: T8_EDGE_VERTEX_TO_TREE_VERTEX_VALUES { { { - 1 } } , /* vertex */ { { 0 } , { 1 } } , /* line */ { { 0 , 2 } , { 1 , 3 } , { 0 , 1 } , { 2 , 3 } } , /* quad */ { { 1 , 2 } , { 0 , 2 } , { 0 , 1 } } , /* triangle */ { { 0 , 1 } , { 2 , 3 } , { 4 , 5 } , { 6 , 7 } , { 0 , 2 } , { 1 , 3 } , { 4 , 6 } , { 5 , 7 } , { 0 , 4 } , { 1 , 5 } , { 2 , 6 } , { 3 , 7 } } , /* hex */ { { 0 , 1 } , { 0 , 2 } , { 0 , 3 } , { 1 , 2 } , { 1 , 3 } , { 2 , 3 } } , /* tet */ { { 1 , 2 } , { 0 , 2 } , { 0 , 1 } , { 4 , 5 } , { 3 , 5 } , { 3 , 4 } , { 1 , 4 } , { 2 , 5 } , { 0 , 3 } } , /* prism */ { { - 1 } } , /* pyramid */ \
+#}
+
+# Skipping MacroDefinition: T8_EDGE_TO_FACE_VALUES { { { - 1 } } , /* vertex */ { { 0 } } , /* line */ { { 0 } , { 1 } , { 2 } , { 3 } } , /* quad */ { { 0 } , { 1 } , { 2 } } , /* triangle */ { { 2 , 4 } , { 3 , 4 } , { 2 , 5 } , { 3 , 5 } , { 0 , 4 } , { 1 , 4 } , { 0 , 5 } , { 1 , 5 } , { 0 , 2 } , { 1 , 2 } , { 0 , 3 } , { 1 , 3 } } , /* hex */ { { 2 , 3 } , { 1 , 3 } , { 1 , 2 } , { 0 , 3 } , { 0 , 2 } , { 0 , 1 } } , /* tet */ { { 0 , 3 } , { 1 , 3 } , { 2 , 3 } , { 0 , 4 } , { 1 , 4 } , { 2 , 4 } , { 0 , 2 } , { 0 , 1 } , { 1 , 2 } } , /* prism */ { { - 1 } } , /* pyramid */ \
+#}
+
+# Skipping MacroDefinition: T8_ECLASS_FACE_ORIENTATION_VALUES { { 0 , - 1 , - 1 , - 1 , - 1 , - 1 } , /* vertex */ { 0 , 0 , - 1 , - 1 , - 1 , - 1 } , /* line */ { 0 , 0 , 0 , 0 , - 1 , - 1 } , /* quad */ { 0 , 0 , 0 , - 1 , - 1 , - 1 } , /* triangle */ { 0 , 1 , 1 , 0 , 0 , 1 } , /* hex */ { 0 , 1 , 0 , 1 , - 1 , - 1 } , /* tet */ { 1 , 0 , 1 , 0 , 1 , - 1 } , /* prism */ { 0 , 1 , 1 , 0 , 0 , - 1 } /* pyramid */ \
+#}
+
+# Skipping MacroDefinition: T8_ECLASS_VTK_TO_T8_CORNER_NUMBER_VALUES { { 0 , - 1 , - 1 , - 1 , - 1 , - 1 , - 1 , - 1 } , /* vertex */ { 0 , 1 , - 1 , - 1 , - 1 , - 1 , - 1 , - 1 } , /* line */ { 0 , 1 , 3 , 2 , - 1 , - 1 , - 1 , - 1 } , /* quad */ { 0 , 1 , 2 , - 1 , - 1 , - 1 , - 1 , - 1 } , /* triangle */ { 0 , 1 , 3 , 2 , 4 , 5 , 7 , 6 } , /* hex */ { 0 , 2 , 1 , 3 , - 1 , - 1 , - 1 , - 1 } , /* tet */ { 0 , 2 , 1 , 3 , 5 , 4 , - 1 , - 1 } , /* prism */ { 0 , 1 , 3 , 2 , 4 , - 1 , - 1 , - 1 } /* pyramid */ \
+#}
+
+# Skipping MacroDefinition: T8_ECLASS_T8_TO_VTK_CORNER_NUMBER_VALUES { { 0 , - 1 , - 1 , - 1 , - 1 , - 1 , - 1 , - 1 } , /* vertex */ { 0 , 1 , - 1 , - 1 , - 1 , - 1 , - 1 , - 1 } , /* line */ { 0 , 1 , 3 , 2 , - 1 , - 1 , - 1 , - 1 } , /* quad */ { 0 , 1 , 2 , - 1 , - 1 , - 1 , - 1 , - 1 } , /* triangle */ { 0 , 1 , 3 , 2 , 4 , 5 , 7 , 6 } , /* hex */ { 0 , 2 , 1 , 3 , - 1 , - 1 , - 1 , - 1 } , /* tet */ { 0 , 2 , 1 , 3 , 5 , 4 , - 1 , - 1 } , /* prism */ { 0 , 1 , 3 , 2 , 4 , - 1 , - 1 , - 1 } /* pyramid */ \
+#}
+
+# Skipping MacroDefinition: T8_ECLASS_FACE_TYPES_VALUES { { - 1 , - 1 , - 1 , - 1 , - 1 , - 1 } , /* vertex */ { 0 , 0 , - 1 , - 1 , - 1 , - 1 } , /* line */ { 1 , 1 , 1 , 1 , - 1 , - 1 } , /* quad */ { 1 , 1 , 1 , - 1 , - 1 , - 1 } , /* triangle */ { 2 , 2 , 2 , 2 , 2 , 2 } , /* hex */ { 3 , 3 , 3 , 3 , - 1 , - 1 } , /* tet */ { 2 , 2 , 2 , 3 , 3 , - 1 } , /* prism */ { 3 , 3 , 3 , 3 , 2 , - 1 } /* pyramid */ \
+#}
+
+# Skipping MacroDefinition: T8_ECLASS_BOUNDARY_COUNT_VALUES { { 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 } , /* vertex */ { 2 , 0 , 0 , 0 , 0 , 0 , 0 , 0 } , /* line */ { 4 , 4 , 0 , 0 , 0 , 0 , 0 , 0 } , /* quad */ { 3 , 3 , 0 , 0 , 0 , 0 , 0 , 0 } , /* triangle */ { 8 , 12 , 6 , 0 , 0 , 0 , 0 , 0 } , /* hex */ { 4 , 6 , 0 , 4 , 0 , 0 , 0 , 0 } , /* tet */ { 6 , 9 , 3 , 2 , 0 , 0 , 0 , 0 } , /* prism */ { 5 , 8 , 1 , 4 , 0 , 0 , 0 , 0 } /* pyramid */ \
+#}
+
+# Skipping MacroDefinition: T8_MPI_ELEMENT_SHAPE_TYPE ( T8_ASSERT ( sizeof ( int ) == sizeof ( t8_element_shape_t ) ) , sc_MPI_INT )
+
+const T8_ELEMENT_SHAPE_MAX_FACES = 6
+
+const T8_ELEMENT_SHAPE_MAX_CORNERS = 8
+
 const T8_FOREST_FROM_FIRST = 0
 
 const T8_FOREST_FROM_COPY = 0
@@ -17696,6 +17637,18 @@ const T8_FOREST_BALANCE_REPART = 1
 const T8_FOREST_BALANCE_NO_REPART = 2
 
 const T8_PROFILE_NUM_STATS = 17
+
+# Skipping MacroDefinition: T8_THROW_ERROR_WITH @ "Invalid usage of T8_WITH_*. Use T8_ENABLE_* instead."
+
+const T8_VTK_LOCIDX = "Int32"
+
+const T8_VTK_GLOIDX = "Int32"
+
+const T8_VTK_FLOAT_NAME = "Float32"
+
+const T8_VTK_FLOAT_TYPE = Float32
+
+const T8_VTK_FORMAT_STRING = "ascii"
 
 const T8_CMESH_N_SUPPORTED_MSH_FILE_VERSIONS = 1
 
