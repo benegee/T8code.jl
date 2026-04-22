@@ -53,8 +53,10 @@ Bindings are created using `Clang.jl`. The general process is as follows:
    or `fixes.sh`.
 8. Go back to 3.
 
+Start using the current setup (steps 1 and 2).
 The crucial ingredients are the `t8code` header files, which are expected in a subdirectory
-`t8code_include` of the folder of this README. You have the following options:
+`t8code_include` of the folder of this , i.e., the `dev` subfolder. You have the following
+options:
 - If you are developing `t8code` locally, you can copy and rename `t8code`'s `include`
   directory from its current prefix path. You will have to comment lines 5 and 6 (dealing with artifacts) in `generator.jl` then.
 - If your pull request to Yggdrasil has already been merged, you can find the newly built
@@ -72,10 +74,10 @@ In any case run
 ```shell
 julia --project generator.jl && ./fixes.sh
 ```
-next. If all goes well, move the new `Libt8.jl` file to `src/` and adapt the compat entry
-in `Project.toml` to reflect the new version of `t8code_jll.jl`.
-
-At this point you can test your new `T8code.jl` version locally, e.g. by creating a
+next (steps 3 and 4). If all goes well and no error is thrown, try running `julia Libt8.jl`
+(step 5). Then, move the new `Libt8.jl` file to `src/` and adapt the compat entry in
+`Project.toml` to reflect the new version of `t8code_jll.jl`.
+At this point you can test your new `T8code.jl` package locally, e.g. by creating a
 subdirectory `run` at the `T8code.jl` root folder, and from there executing
 
 ```shell
@@ -86,7 +88,7 @@ julia> Pkg.develop(path="..")
 julia> Pkg.test("T8code")
 ```
 
-If actually all went well, go ahead and open a pull request.
-
+If anything fails, you might have to update the generator workflow (step 7) or start
+debugging the tests. If all goes well, go ahead and open a pull request.
 Once this pull request has been merged, downstream packages can start adopting your new
 t8code release!
