@@ -1,3 +1,6 @@
+# This was taken from
+# https://github.com/JuliaInterop/Clang.jl/blob/master/gen/generator.toml
+
 [general]
 # it could also be an expression as long as `Meta.parse` can parse this string successfully.
 # basically, it should be the `expression` in the following code:
@@ -48,6 +51,7 @@ epilogue_file_path = ""
 
 # node with an id in the `output_ignorelist` will be ignored in the printing passes.
 # this is very useful for custom editing.
+# we use this to exclude everything which is not required and causes errors
 output_ignorelist = [
   "_sc_restrict",
   "SC_GCC_VERSION",
