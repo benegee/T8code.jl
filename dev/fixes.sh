@@ -16,6 +16,7 @@ sed -i "s/\bintranode::Ptr{Cint}/intranode::Ptr{MPI_Comm}/g" "${LIB_JL}"
 sed -i "s/\binternode::Ptr{Cint}/internode::Ptr{MPI_Comm}/g" "${LIB_JL}"
 sed -i "s/mpifile::Cint/mpifile::MPI_File/g" "${LIB_JL}"
 
+# Change return type of `t8_forest_get_mpicomm``from `Cint` to `MPI_Comm`
 sed -i "s/t8_forest_get_mpicomm(forest::t8_forest_t)::Cint/t8_forest_get_mpicomm(forest::t8_forest_t)::MPI_Comm/g" "${LIB_JL}"
 
 # Use libsc for `sc_*` functions

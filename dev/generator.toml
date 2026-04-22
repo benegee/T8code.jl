@@ -31,7 +31,7 @@ module_name = "Libt8"
 # if this entry is not empty, the generator will print the code below to the `output_file_path`.
 # using jll_pkg_name
 # export jll_pkg_name
-# We do not set this option since we want to customize it in prologue.jl.
+# We do not set the option `jll_pkg_name` here since we want to customize it in prologue.jl.
 # jll_pkg_name = "t8code_jll"
 jll_pkg_name = ""
 
