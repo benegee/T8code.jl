@@ -24,21 +24,19 @@ https://github.com/JuliaPackaging/Yggdrasil/tree/master/T/t8code,
 editing `build_tarballs.jl` to at least reflect the latest version, tarball URL, and hash,
 committing, and opening a pull request.
 
-Even a draft PR will already trigger the buildkite
-pipelines. Check the builds for any errors. Successful runs will produce the binary
-packages as artifacts. You can find an URL to such an artifact in the buildkite output,
-along with its tree hash and SHA256 hash, which can be used in `Artifacts.toml` described
-below.
+Even a draft PR will already trigger the buildkite pipelines. Check the builds for any
+errors. Successful runs will produce the binary packages as artifacts. You can find an URL
+to such an artifact in the buildkite output, along with its tree hash and SHA256 hash,
+which can be used in `Artifacts.toml` described below.
 
 If you instead want to run BinaryBuilder locally you can do so by executing
 
 ```shell
-julia +1.7 build_tarballs.jl --debug --verbose x86_64-linux-gnu --deploy=local
+julia build_tarballs.jl --debug --verbose x86_64-linux-gnu --deploy=local
 ```
 
-This requires a local Julia installation and Julia version 1.7. You can use any other
-eligible platform triple instead of `x86_64-linux-gnu`. Adding `--deploy=local` will add
-the created binaries to your local Julia artifacts folder.
+You can use any other eligible platform triple instead of `x86_64-linux-gnu`. Adding
+`--deploy=local` will add the created binaries to your local Julia artifacts folder.
 
 
 ## Updating `Tcode.jl`
